@@ -935,7 +935,7 @@ if (window.FunMode && ui.funPanel) {
 }
 
 const playyardRuntime = {
-  selectedGame: "tap-duel",
+  selectedGame: "chaos-arena",
   state: { players: [], round: null, history: [] },
   ticker: null,
   dodgeVisual: null,
@@ -943,11 +943,6 @@ const playyardRuntime = {
 };
 
 const playyardGameMeta = {
-  "tap-duel": { title: "Tap Duel", prompt: "Mash Primary Action as fast as you can." },
-  "reaction-race": { title: "Reaction Race", prompt: "Tap the matching emoji fast." },
-  "dodge-grid": { title: "Dodge Grid", prompt: "Dodge obstacles to build score." },
-  "dodge-together": { title: "Dodge Together", prompt: "Co-op survival. Left pilot moves left, right pilot moves right." },
-  "memory-flash": { title: "Memory Flash", prompt: "Choose the remembered codename once." },
   "chaos-arena": { title: "Chaos Arena", prompt: "Arrow keys move, Space dashes. Press M for maps and N for modes." }
 };
 const mascotStageLabels = {
