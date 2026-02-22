@@ -1,0 +1,49 @@
+{
+  "usersById": {
+    "usr_mlwn0rtl_1c4fe996": {
+      "id": "usr_mlwn0rtl_1c4fe996",
+      "username": "syncuser1771697623",
+      "email": "sync1771697623@example.com",
+      "displayName": "Tester 1771697623",
+      "password": {
+        "salt": "ea4aab1bfaa49c29cb8d52b408936f31",
+        "hash": "6fdcc1f8c426337faf932eec1254b4d7adf3d95025b8ba75d4071b1b8170d5a53cbfb5eabe36b931ca3771c278fb192bc4015a8c77781b7665e64d44bb9fcfd2"
+      },
+      "createdAt": 1771697624025,
+      "updatedAt": 1771697624187,
+      "preferences": {
+        "vibe": "pookie",
+        "lastRoomId": "qa-room-1",
+        "lastMode": "fun",
+        "lastSeenAt": 1771697624187
+      }
+    },
+    "usr_mlxdm02r_93480ee0": {
+      "id": "usr_mlxdm02r_93480ee0",
+      "username": "as2624",
+      "email": "aryansingla23@gmail.com",
+      "displayName": "aryan",
+      "password": {
+        "salt": "6a5e74046679c74080bcc60f9290afb5",
+        "hash": "c6bfa557b80ed57edd13ef037b81bc5ee8c0cb84af466e97a9a58ca701ff67c19ef4558bd8e833a51b146275fbcd7fbccec71e35fdde57d8d509ebf1d7274dd8"
+      },
+      "createdAt": 1771742284515,
+      "updatedAt": 1771744128148,
+      "preferences": {
+        "vibe": "cinema",
+        "lastRoomId": "watch-watch-791",
+        "lastMode": "break",
+        "lastSeenAt": 1771744128148
+      }
+    }
+  },
+  "userIdByUsername": {
+    "syncuser1771697623": "usr_mlwn0rtl_1c4fe996",
+    "as2624": "usr_mlxdm02r_93480ee0"
+  },
+  "userIdByEmail": {
+    "sync1771697623@example.com": "usr_mlwn0rtl_1c4fe996",
+    "aryansingla23@gmail.com": "usr_mlxdm02r_93480ee0"
+  },
+  "updatedAt": 1771744128148
+}

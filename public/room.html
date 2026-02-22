@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyncNest | Room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Nunito:wght@400;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/components/sheep-battle/sheep-push-battle.css" />
+</head>
+
+<body class="room-page">
+  <!-- Vibe Layers -->
+  <div id="vibeOverlay" aria-hidden="true">
+    <div class="vibe-layer rain-vibe"></div>
+    <div class="vibe-layer cafe-vibe"></div>
+    <div class="vibe-layer noise-vibe"></div>
+    <div class="vibe-layer focus-vibe"></div>
+  </div>
+
+  <div class="room-bg" aria-hidden="true">
+    <div class="room-blob room-blob-1"></div>
+    <div class="room-blob room-blob-2"></div>
+  </div>
+
+  <div class="sparkle-container" id="sparkleContainer"></div>
+
+  <header class="room-topbar">
+    <div class="topbar-left">
+      <a href="/" class="topbar-logo">SyncNest</a>
+      <div class="topbar-divider"></div>
+      <div class="topbar-room-info" id="copyLinkBtn" title="Click to copy invite link">
+        <span class="topbar-label">ROOM</span>
+        <span id="roomCode" class="topbar-code">...</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <button id="vibeToggle" class="vibe-toggle-btn" title="Switch between Cinema (Dark) and Pookie (Pink) vibes">
+        <span class="vibe-icon-cinema">🎬 Vibe: Cinema</span>
+        <span class="vibe-icon-pookie">🎀 Vibe: Pookie</span>
+      </button>
+      <button id="helpBtn" class="topbar-btn-icon" title="View Application Guide & Tips">❓</button>
+      <div id="activeModeBadge" class="mode-badge hidden">
+        <span id="modeBadgeIcon"></span>
+        <span id="modeBadgeText"></span>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div id="accountBadge" class="topbar-account hidden" title="Signed in account"></div>
+      <div class="topbar-users" id="userCount" title="Currently online in this room">0 online</div>
+      <button id="leaveRoomBtn" class="topbar-btn-danger" title="Exit room and return to home page">Leave</button>
+    </div>
+  </header>
+
+  <main class="room-shell blurred">
+    <!-- Left Column: Primary Interface (Study/Break/Fun) -->
+    <div class="room-main">
+      <!-- Study Room Panel -->
+      <section id="studyPanel" class="main-panel hidden">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon">📚</span>
+            <h2>Study Room</h2>
+          </div>
+          <div class="pomo-status" id="pomoLabel">Ready to Focus?</div>
+        </div>
+
+        <div class="pomo-container">
+          <div id="pomoTimer" class="pomo-clock">25:00</div>
+
+          <div class="pomo-controls">
+            <div class="pomo-presets">
+              <button id="pomoPreset25Btn" class="pomo-btn active"
+                title="Set focus timer to 25 minutes (Classic Pomodoro)">25m</button>
+              <button id="pomoPreset45Btn" class="pomo-btn"
+                title="Set focus timer to 45 minutes (Extended Focus)">45m</button>
+              <div class="pomo-custom">
+                <input id="pomoCustomMinutesInput" type="number" min="5" max="240" step="5" placeholder="Min"
+                  title="Enter custom minutes" />
+                <button id="pomoCustomSetBtn" title="Apply custom time">Set</button>
+              </div>
+            </div>
+
+            <div class="pomo-actions">
+              <button id="pomoStartBtn" class="btn-pomo-primary" title="Begin focus session">Start Focus</button>
+              <button id="pomoPauseBtn" class="btn-pomo-secondary hidden" title="Pause session">Pause</button>
+              <button id="pomoResetBtn" class="btn-pomo-secondary" title="Reset timer to original value">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="focus-input-section">
+          <label for="focusTaskInput">Primary focus for this session</label>
+          <form id="focusTaskForm" class="focus-form">
+            <input id="focusTaskInput" type="text" maxlength="50" placeholder="e.g. Completing UI redesign" />
+            <button type="submit">Update</button>
+          </form>
+          <div class="focus-task-actions">
+            <button id="focusTaskDoneBtn" class="btn-done" title="Celebrate completing your primary task! ✨">Mark Task
+              Complete ✨</button>
+          </div>
+        </div>
+
+        <div class="panel-divider"><span>Ambient Sounds</span></div>
+
+        <div class="ambient-mixer">
+          <div class="mixer-track">
+            <span class="track-label">🌧️ Rain</span>
+            <input type="range" id="volRain" min="0" max="100" value="0">
+            <span id="volRainVal" class="track-val">0%</span>
+          </div>
+          <div class="mixer-track">
+            <span class="track-label">☕ Cafe</span>
+            <input type="range" id="volCafe" min="0" max="100" value="0">
+            <span id="volCafeVal" class="track-val">0%</span>
+          </div>
+          <div class="mixer-track">
+            <span class="track-label">🌬️ White Noise</span>
+            <input type="range" id="volNoise" min="0" max="100" value="0">
+            <span id="volNoiseVal" class="track-val">0%</span>
+          </div>
+        </div>
+
+        <div id="studyStats" class="study-stats">
+          <div class="stat-card">
+            <span class="stat-num" id="statFocusTime">0m</span>
+            <span class="stat-label">Focus Time</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statTasksDone">0</span>
+            <span class="stat-label">Tasks Done</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Break Room Panel -->
+      <section id="breakPanel" class="main-panel hidden">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon">☕</span>
+            <h2>Break Room</h2>
+          </div>
+          <div id="breakTimerDisplay" class="break-clock" title="Estimated time remaining for break">10:00</div>
+        </div>
+
+        <div class="break-media-stage">
+          <div id="breakAmbientScene" class="break-scene scene-rain"></div>
+
+          <div id="breakYTPlayerWrap" class="break-yt-wrap hidden">
+            <div id="breakYTPlayer"></div>
+            <div class="break-yt-controls">
+              <button id="breakSyncPlayBtn">▶️</button>
+              <button id="breakSyncPauseBtn">⏸️</button>
+              <div class="break-seek-container">
+                <span id="breakSyncTime">0:00</span>
+                <input type="range" id="breakSeekSlider" min="0" value="0" step="1">
+              </div>
+              <button id="breakYTFullscreenBtn">⛶</button>
+            </div>
+          </div>
+
+          <iframe id="breakMediaIframe" class="break-iframe hidden" allow="autoplay; encrypted-media"></iframe>
+
+          <div id="breakPartnerVideoWrap" class="break-overlay-video hidden">
+            <video id="breakPartnerVideo" autoplay playsinline muted></video>
+            <div class="overlay-video-label">Partner</div>
+            <div class="overlay-video-actions">
+              <button id="breakMaximizePartnerBtn" class="btn-overlay-action"
+                title="Maximize partner video to stage">🔳</button>
+              <button id="breakPartnerMinimizeBtn" class="btn-overlay-action"
+                title="Minimize partner video to corner">➖</button>
+            </div>
+          </div>
+
+          <!-- Breathing Guide Overlay -->
+          <div id="breathingGuide" class="breathing-guide-overlay hidden">
+            <div class="breathing-circle"></div>
+            <div id="breathingText" class="breathing-text">Inhale...</div>
+          </div>
+
+          <!-- Screen-Wide Burst Container -->
+          <div id="burstContainer" class="burst-container" aria-hidden="true"></div>
+        </div>
+
+        <div class="break-controls-grid">
+          <div class="break-input-row">
+            <input id="breakMediaLinkInput" type="url" placeholder="Paste YouTube link to watch together..."
+              title="Enter a direct video URL or YouTube link" />
+            <button id="breakPlayTogetherBtn" class="btn-primary-sm"
+              title="Synchronize this video for everyone in the room">Sync Play</button>
+          </div>
+
+          <div class="break-action-row">
+            <div class="break-btns">
+              <button id="breakStart5Btn" title="Start a quick 5-minute break recharge">5m Break</button>
+              <button id="breakStart10Btn" class="btn-active" title="Start a deep 10-minute relaxation break">10m
+                Break</button>
+              <button id="breakToolbarFullscreenBtn" title="Toggle fullscreen for Break Room">Fullscreen</button>
+              <button id="breakToolbarEndBtn" class="btn-end-break" title="Return to Study Room immediately">End Break
+                Early</button>
+            </div>
+
+            <div class="break-scenes">
+              <button class="scene-btn active" data-scene="rain" title="Rainy Cafe">🌧️</button>
+              <button class="scene-btn" data-scene="beach" title="Beach Vibe">🏖️</button>
+              <button class="scene-btn" data-scene="night-city" title="Cyber City">🌃</button>
+              <button class="scene-btn" data-scene="campfire" title="Fireplace">🔥</button>
+            </div>
+          </div>
+
+          <!-- New: Wellness & Vibe Presets -->
+          <div class="break-extras-row">
+            <div class="vibe-presets">
+              <span class="extras-label">Presets:</span>
+              <button class="preset-btn" data-preset="lofi" title="Lo-fi Study Session">🎧 Lo-fi</button>
+              <button class="preset-btn" data-preset="cafe" title="Zen Cafe Ambience">☕ Cafe</button>
+              <button class="preset-btn" data-preset="cyber" title="Cyber Relax Mode">🌌 Cyber</button>
+            </div>
+            <button id="btnToggleWellness" class="btn-wellness" title="Toggle Guided Breathing Exercise">🧘 Breathing
+              Guide</button>
+          </div>
+
+          <!-- Our Song: Emotional Anchor -->
+          <div class="our-song-card" id="ourSongCard">
+            <div class="our-song-header">
+              <span class="our-song-icon">🎵</span>
+              <div class="our-song-info">
+                <span class="our-song-label">Our Song</span>
+                <span id="ourSongTitle" class="our-song-title">No song saved yet</span>
+              </div>
+              <button id="ourSongPlayBtn" class="our-song-play-btn" title="Play Our Song for both instantly" disabled>▶
+                Play for Both</button>
+            </div>
+            <div class="our-song-input-row">
+              <input id="ourSongInput" type="url" placeholder="Paste YouTube link to save as Our Song..." />
+              <button id="ourSongSaveBtn" class="our-song-save-btn" title="Save as Our Song">💾 Save</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="break-widgets">
+          <!-- Conversation Prompts -->
+          <div id="breakPromptPanel" class="break-overlay-panel hidden"></div>
+
+          <!-- Drawing Board -->
+          <div id="breakDrawingPanel" class="break-overlay-panel hidden"></div>
+
+          <!-- Moment Wall -->
+          <div class="break-overlay-panel hidden" id="breakMomentsPanel">
+            <div class="panel-header">
+              <h3>Moment Wall</h3>
+              <button class="btn-close-widget"
+                onclick="document.getElementById('breakMomentsPanel').classList.add('hidden')">✕</button>
+            </div>
+            <ul id="breakMemoriesList" class="memories-list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fun Room Panel -->
+      <section id="funPanel" class="main-panel fun-room-panel hidden">
+        <div class="fun-room-layout">
+          <!-- Top: Scoreboard & Points -->
+          <div class="fun-top-bar glass-panel">
+            <div class="fun-score">
+              <div class="score-item">
+                <span class="score-label">Player 1</span>
+                <span id="p1Score" class="score-val">0</span>
+              </div>
+              <div class="score-vs">VS</div>
+              <div class="score-item">
+                <span class="score-label">Player 2</span>
+                <span id="p2Score" class="score-val">0</span>
+              </div>
+            </div>
+            <div class="fun-stats">
+              <div class="stat-bubble">
+                <span class="stat-icon">🔥</span>
+                <span id="winStreak">0</span>
+              </div>
+              <div class="stat-bubble">
+                <span class="stat-icon">💎</span>
+                <span id="funPoints">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fun-grid">
+            <!-- Center: Active game area -->
+            <div id="funGameArea" class="fun-game-area glass-panel">
+              <div id="gameStarter" class="game-starter">
+                <h1>Fun Room 🎮</h1>
+                <p>Pick a challenge or game below!</p>
+                <button id="btnSurpriseUs" class="lp-btn-primary btn-premium">✨ Surprise Us!</button>
+                <button id="btnOpenWatchPartyHero" class="toolbar-icon-btn btn-watch-hero">🎬 Sync Play</button>
+                <button id="btnOpenMiniPlayyardHero" class="toolbar-icon-btn btn-mini-playyard-hero">🧩 Mini Playyard</button>
+                <button id="btnCinematicEventHero" class="toolbar-icon-btn btn-cinematic-hero">🎥 Cinematic Event</button>
+              </div>
+              <div id="teleportFxLayer" class="teleport-fx-layer" aria-hidden="true"></div>
+              <div id="cinematicEventLayer" class="cinematic-event-layer" aria-hidden="true"></div>
+              <div id="funCrowdLayer" class="fun-crowd-layer" aria-hidden="true"></div>
+              <div id="funHugLayer" class="fun-hug-layer" aria-hidden="true"></div>
+              <div id="funThoughtLayer" class="fun-thought-layer" aria-hidden="true"></div>
+              <div id="funConfessionLayer" class="fun-confession-layer" aria-hidden="true"></div>
+              <!-- Games & Activities Injected Here -->
+            </div>
+
+            <!-- Right Panel: Player Status & Challenges -->
+            <aside class="fun-right-panel glass-panel">
+              <div class="fun-panel-section">
+                <h4>Players</h4>
+                <div id="funPlayerList" class="fun-player-list"></div>
+              </div>
+              <div class="fun-panel-section">
+                <h4>Active Challenge</h4>
+                <div id="activeChallengeCard" class="challenge-card">
+                  <p id="challengeText">Ready for action?</p>
+                  <div id="challengeTimer" class="challenge-timer hidden"></div>
+                </div>
+              </div>
+              <div id="funMoodIndicator" class="fun-mood-indicator">
+                <span class="mood-dot"></span> Vibe: Energetic
+              </div>
+              <section class="shared-mascot-card" data-shared-mascot>
+                <div class="shared-mascot-top">
+                  <h4>Shared Mascot</h4>
+                  <span class="shared-mascot-stage" data-mascot-stage>Sprout</span>
+                </div>
+                <div class="shared-mascot-main">
+                  <div class="shared-mascot-avatar stage-sprout" data-mascot-avatar>
+                    <span data-mascot-face>o_o</span>
+                  </div>
+                  <p class="shared-mascot-note" data-mascot-note>Play together to evolve your mascot.</p>
+                </div>
+                <div class="shared-mascot-meta">
+                  <span data-mascot-play>0m playtime</span>
+                  <span data-mascot-wins>0 wins</span>
+                  <span data-mascot-level>L1</span>
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <!-- Bottom: Fun Toolbar -->
+          <div class="fun-toolbar-shell glass-panel">
+            <div class="fun-toolbar-nav">
+              <button id="funToolbarPrev" class="toolbar-scroll-btn" title="Scroll toolbar left" aria-label="Scroll toolbar left">◀</button>
+              <div id="funToolbarViewport" class="fun-toolbar-viewport">
+                <div class="fun-toolbar">
+                  <div class="toolbar-group">
+                    <button id="btnOpenGames" class="toolbar-icon-btn" title="Games Library">🕹️ <span>Games</span></button>
+                    <button id="btnOpenWatchParty" class="toolbar-icon-btn" title="Watch together with synced play/pause/seek">🎬 <span>Sync Play</span></button>
+                    <button id="btnOpenMiniPlayyard" class="toolbar-icon-btn mini-playyard-btn" title="Open the 3D mini playyard arena">🧩 <span>Mini Playyard</span></button>
+                    <button id="btnOpenChallenges" class="toolbar-icon-btn" title="Daily Challenges">🎯
+                      <span>Challenges</span></button>
+                    <button id="btnOpenReactions" class="toolbar-icon-btn" title="Reaction Spam">🎭
+                      <span>Reactions</span></button>
+                    <button id="btnOpenAiLab" class="toolbar-icon-btn" title="AI-powered Fun Room features">🤖 <span>AI Lab</span></button>
+                    <button id="btnSendHug" class="toolbar-icon-btn hug-btn" title="Hold to send a hug">🫶 <span>Send Hug</span></button>
+                    <button id="btnThoughtMode" class="toolbar-icon-btn thought-btn" title="Send a floating thought">💭 <span>Thought</span></button>
+                    <button id="btnNightConfession" class="toolbar-icon-btn confession-btn"
+                      title="Toggle Night Confession Mode">🌙 <span>Night Confession</span></button>
+                  </div>
+
+                  <div class="fun-center-actions">
+                    <button id="btnChaos" class="chaos-btn" title="Trigger Random Chaos!">💥 CHAOS</button>
+                    <button id="btnCinematicEvent" class="cinematic-event-btn" title="Trigger a 60-second cinematic transformation">🎥 Event</button>
+                    <button id="btnTeleport" class="teleport-btn" title="Randomly teleport everyone into a surprise universe">🌠 Teleport</button>
+                    <button id="btnTeleportFullscreen" class="teleport-fullscreen-btn" title="Toggle fullscreen for universe teleport">⛶ Fullscreen Off</button>
+                  </div>
+
+                  <div class="toolbar-group">
+                    <button id="btnStopCinematicEvent" class="toolbar-icon-btn stop-event-btn"
+                      title="Stop cinematic event for everyone">🛑 <span>Stop Event</span></button>
+                    <button id="btnStopTeleport" class="toolbar-icon-btn stop-teleport-btn"
+                      title="Exit teleport mode for everyone">🧭 <span>Stop Teleport</span></button>
+                    <button id="btnTeleportAudio" class="toolbar-icon-btn teleport-audio-btn"
+                      title="Mute or unmute teleport mode audio only">🔊 <span>Teleport Audio</span></button>
+                    <button id="btnOpenUnlocks" class="toolbar-icon-btn" title="Point Shop">🔓 <span>Unlocks</span></button>
+                    <button id="btnExitFun" class="toolbar-icon-btn btn-danger-soft">🚪 <span>Exit</span></button>
+                  </div>
+                </div>
+              </div>
+              <button id="funToolbarNext" class="toolbar-scroll-btn" title="Scroll toolbar right" aria-label="Scroll toolbar right">▶</button>
+            </div>
+            <input id="funToolbarSlider" class="fun-toolbar-slider" type="range" min="0" max="100" value="0"
+              aria-label="Fun toolbar slider" />
+          </div>
+        </div>
+
+        <!-- Pop-out Submenus (Hidden by default) -->
+        <div id="funGamesSubmenu" class="fun-submenu glass-panel hidden">
+          <header>
+            <h3>🎮 Choose Game</h3><button class="close-submenu">×</button>
+          </header>
+          <div class="game-options-grid">
+            <button class="sub-game-btn" data-game="watchparty">🎬 Sync Play</button>
+            <button class="sub-game-btn mini-playyard-sub" data-game="miniplayyard">🧩 Mini Playyard</button>
+            <button class="sub-game-btn" data-game="quiz">⚡ Rapid Quiz</button>
+            <button class="sub-game-btn" data-game="draw">🎨 Guess Draw</button>
+            <button class="sub-game-btn" data-game="song">🎵 Guess Song</button>
+            <button class="sub-game-btn" data-game="thisthat">⚖️ This / That</button>
+            <button class="sub-game-btn" data-game="memory">🎴 Memory</button>
+            <button class="sub-game-btn" data-game="tapspeed">🚀 Tap Speed</button>
+          </div>
+        </div>
+
+        <div id="funReactionsSubmenu" class="fun-submenu glass-panel hidden">
+          <header>
+            <h3>🎭 Spam Mode</h3><button class="close-submenu">×</button>
+          </header>
+          <div class="reaction-options">
+            <button class="spam-btn">😂</button><button class="spam-btn">🔥</button><button class="spam-btn">💀</button>
+            <button class="spam-btn">🎉</button><button class="spam-btn">💥</button><button class="spam-btn">😭</button>
+            <button class="spam-btn">❤️</button><button class="spam-btn">✨</button>
+          </div>
+          <button id="btnReactionStorm" class="btn-storm">Trigger Storm! ⛈️</button>
+        </div>
+
+        <div id="funAiSubmenu" class="fun-submenu glass-panel hidden">
+          <header>
+            <h3>🤖 AI Lab</h3><button class="close-submenu">×</button>
+          </header>
+          <div class="game-options-grid ai-options-grid">
+            <button class="sub-game-btn ai-feature-btn" data-game="airoast">🎤 AI Roast Mode</button>
+            <button class="sub-game-btn ai-feature-btn" data-game="aistory">📝 AI Story Builder</button>
+            <button class="sub-game-btn ai-feature-btn" data-game="aimood">🎵 AI Mood Remix</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mini Playyard Room Panel -->
+      <section id="playyardPanel" class="main-panel playyard-panel hidden">
+        <div class="playyard-room-shell">
+          <div class="playyard-room-head">
+            <div class="playyard-room-badge">MINI PLAYYARD ROOM</div>
+            <button id="playyardBackToFunBtn" class="toolbar-icon-btn playyard-back-btn">🎮 Back to Fun Room</button>
+          </div>
+
+          <div class="mini-playyard-shell playyard-full-shell">
+            <div class="mini-playyard-bg">
+              <span class="mini-star s1"></span>
+              <span class="mini-star s2"></span>
+              <span class="mini-star s3"></span>
+              <span class="mini-star s4"></span>
+            </div>
+
+            <header class="mini-playyard-header">
+              <h2>Mini Playyard</h2>
+              <p>You entered a full-room neon arena. This is your separate game space.</p>
+            </header>
+
+            <section class="playyard-hud-grid">
+              <article class="playyard-hud-card" id="playyardMyStats">
+                <h4>You</h4>
+                <p>Level 1 • 0 XP • 0 wins</p>
+              </article>
+              <article class="playyard-hud-card" id="playyardPartnerStats">
+                <h4>Partner</h4>
+                <p>Waiting for another player...</p>
+              </article>
+              <article class="playyard-hud-card">
+                <h4>Round</h4>
+                <p id="playyardRoundTimer">No active round</p>
+              </article>
+              <article class="playyard-hud-card playyard-mascot-hud">
+                <div class="shared-mascot-card compact" data-shared-mascot>
+                  <div class="shared-mascot-top">
+                    <h4>Mascot</h4>
+                    <span class="shared-mascot-stage" data-mascot-stage>Sprout</span>
+                  </div>
+                  <div class="shared-mascot-main">
+                    <div class="shared-mascot-avatar stage-sprout" data-mascot-avatar>
+                      <span data-mascot-face>o_o</span>
+                    </div>
+                    <p class="shared-mascot-note" data-mascot-note>Evolves with your duo.</p>
+                  </div>
+                  <div class="shared-mascot-meta">
+                    <span data-mascot-play>0m</span>
+                    <span data-mascot-wins>0 wins</span>
+                    <span data-mascot-level>L1</span>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+            <section class="playyard-games" aria-label="Mini game selector">
+              <button class="playyard-game-btn active" data-playyard-game="tap-duel">⚡ Tap Duel</button>
+              <button class="playyard-game-btn" data-playyard-game="reaction-race">🎯 Reaction Race</button>
+              <button class="playyard-game-btn" data-playyard-game="dodge-grid">🛡️ Dodge Grid</button>
+              <button class="playyard-game-btn" data-playyard-game="dodge-together">🤝 Dodge Together</button>
+              <button class="playyard-game-btn" data-playyard-game="memory-flash">🧠 Memory Flash</button>
+              <button class="playyard-game-btn" data-playyard-game="chaos-arena">🌪 Chaos Arena</button>
+              <button id="playyardStartRoundBtn" class="playyard-start-btn">🚀 Start Round</button>
+            </section>
+
+            <div class="mini-playyard-stage">
+              <div class="mini-grid-floor"></div>
+              <div class="mini-energy-ring ring-a"></div>
+              <div class="mini-energy-ring ring-b"></div>
+              <div class="mini-energy-ring ring-c"></div>
+
+              <div class="mini-cube-wrap">
+                <div class="mini-cube">
+                  <span class="mini-face front">PLAY</span>
+                  <span class="mini-face back">YARD</span>
+                  <span class="mini-face right">SYNC</span>
+                  <span class="mini-face left">VIBE</span>
+                  <span class="mini-face top">GG</span>
+                  <span class="mini-face bottom">XP</span>
+                </div>
+              </div>
+
+              <div class="mini-glow-pill mini-pill-a"></div>
+              <div class="mini-glow-pill mini-pill-b"></div>
+            </div>
+
+            <section class="playyard-round-panel">
+              <h3 id="playyardRoundTitle">Tap Duel</h3>
+              <p id="playyardRoundPrompt">Start a round to begin scoring.</p>
+              <div id="playyardRoundTarget" class="playyard-target"></div>
+              <div id="playyardMemoryOptions" class="playyard-memory-options hidden"></div>
+            </section>
+
+            <div class="mini-playyard-controls">
+              <button id="playyardWarpBtn" class="toolbar-icon-btn mini-playyard-action">⚡ Primary Action</button>
+              <button id="playyardBoostBtn" class="toolbar-icon-btn mini-playyard-action alt">🏁 Secondary Action</button>
+              <button id="playyardBattleFullscreenBtn" class="toolbar-icon-btn mini-playyard-action hidden">⛶ Fullscreen</button>
+              <button id="playyardClaimDropBtn" class="toolbar-icon-btn mini-playyard-action reward-btn" disabled>🎁 Claim Drop</button>
+            </div>
+
+            <section id="playyardMiniCall" class="playyard-mini-call">
+              <div class="playyard-mini-call-head">
+                <h4>Mini Call</h4>
+                <div class="playyard-mini-call-actions">
+                  <button id="playyardCallToggleBtn" class="toolbar-icon-btn playyard-call-toggle-btn">📹 Start Mini Call</button>
+                  <button id="playyardCallCollapseBtn" class="toolbar-icon-btn playyard-call-collapse-btn">▾</button>
+                </div>
+              </div>
+              <div id="playyardMiniCallBody" class="playyard-mini-call-body">
+                <article class="playyard-mini-video-tile playyard-mini-video-local">
+                  <video id="playyardLocalVideo" autoplay muted playsinline></video>
+                  <div class="playyard-mini-video-label">You</div>
+                </article>
+                <article class="playyard-mini-video-tile playyard-mini-video-partner">
+                  <video id="playyardPartnerVideo" autoplay muted playsinline></video>
+                  <div id="playyardPartnerVideoLabel" class="playyard-mini-video-label">Partner</div>
+                </article>
+              </div>
+            </section>
+
+            <section id="playyardDropCard" class="playyard-drop-card hidden">
+              <h4>Power-Up Drop</h4>
+              <p id="playyardDropText">No active drop yet.</p>
+            </section>
+
+            <section class="playyard-unlocks">
+              <h4>Unlocks</h4>
+              <div id="playyardUnlockList" class="playyard-unlock-list">No unlocks yet.</div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Column: Video & Chat -->
+    <aside class="room-sidebar">
+      <!-- Call Section -->
+      <section class="sidebar-card sidebar-call">
+        <div class="sidebar-header">
+          <div class="pulse-dot"></div>
+          <h3>Live Call</h3>
+        </div>
+        <div class="video-grid" id="remoteVideos">
+          <article class="video-item local-video" id="localVideoCard">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="video-label">You</div>
+            <button class="tile-fullscreen-btn" id="localTileFullscreenBtn" title="Fullscreen video">⛶</button>
+          </article>
+          <!-- Remote videos injected here -->
+        </div>
+      </section>
+
+      <!-- Chat Section -->
+      <section class="sidebar-card sidebar-chat">
+        <div class="sidebar-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <h3>Messages</h3>
+        </div>
+        <div id="chatMessages" class="chat-viewport"></div>
+        <form id="chatForm" class="chat-form">
+          <input id="chatInput" type="text" maxlength="500" placeholder="Type a message..." autocomplete="off"
+            title="Send a message to everyone" />
+          <button type="submit" title="Send message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polyline points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </form>
+      </section>
+    </aside>
+
+    <!-- Floating Controller (Calls/Settings) -->
+    <div id="studyToolbar" class="room-toolbar hidden">
+      <div class="toolbar-pill">
+        <button id="toggleMicBtn" class="toolbar-btn" title="Toggle Microphone">
+          <svg class="icon-mic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" x2="12" y1="19" y2="22" />
+          </svg>
+        </button>
+        <button id="toggleCamBtn" class="toolbar-btn" title="Toggle Camera">
+          <svg class="icon-cam" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="m22 8-6 4 6 4V8Z" />
+            <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+          </svg>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button id="startStudyCallBtn" class="toolbar-btn btn-join-call" title="Join Call">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+        </button>
+        <button id="leaveStudyCallBtn" class="toolbar-btn btn-end-call hidden" title="End Call">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91c.65.64 1.35 1.22 2.1 1.73" />
+            <line x1="2" x2="22" y1="2" y2="22" />
+          </svg>
+        </button>
+
+        <div class="toolbar-divider break-only"></div>
+
+        <button id="breakToolbarDrawingBtn" class="toolbar-btn break-only" title="Toggle Drawing Board">🎨</button>
+        <button id="breakToolbarPromptBtn" class="toolbar-btn break-only"
+          title="Toggle Conversation Prompts">💬</button>
+        <button id="breakToolbarFullscreenVideoBtn" class="toolbar-btn break-only"
+          title="Partner Video Fullscreen">⛶</button>
+        <button id="breakToolbarSaveMomentBtn" class="toolbar-btn break-only" title="Save this Moment">📸</button>
+        <button id="breakShowMomentsBtn" class="toolbar-btn break-only" title="Moment Wall">🎞️</button>
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <!-- Help / Guide Overlay -->
+  <div id="helpOverlay" class="mode-overlay hidden">
+    <div class="overlay-box guide-box">
+      <h2 class="overlay-title">SyncNest Guide 📖</h2>
+      <div class="guide-content">
+        <div class="guide-section">
+          <h4>🎭 Vibes</h4>
+          <p><strong>Cinema:</strong> Focus-first dark theme. <strong>Pookie:</strong> Fun theme with sparkles & hearts.
+          </p>
+        </div>
+        <div class="guide-section">
+          <h4>📚 Study Room</h4>
+          <p>Sync your <strong>Pomodoro</strong> timer, set a <strong>Focus Task</strong>, and mix <strong>Ambient
+              Sounds</strong>.</p>
+        </div>
+        <div class="guide-section">
+          <h4>☕ Break Room</h4>
+          <p>Watch <strong>YouTube</strong> together, use the <strong>Drawing Board</strong>, or try
+            <strong>Conversation Prompts</strong>.
+          </p>
+        </div>
+        <div class="guide-section">
+          <h4>📸 Moment Wall</h4>
+          <p>Save special break moments to your session scrapbook using the camera icon.</p>
+        </div>
+      </div>
+      <button class="lp-btn-primary" onclick="document.getElementById('helpOverlay').classList.add('hidden')">Got
+        it!</button>
+    </div>
+  </div>
+
+  <div id="modeSetupOverlay" class="mode-overlay">
+    <div class="overlay-box">
+      <h2 class="overlay-title">Choose your vibe</h2>
+      <p class="overlay-desc">Select a mode to start the session.</p>
+
+      <div class="mode-cards">
+        <button class="mode-card" data-mode="study">
+          <div class="mode-glow glow-study"></div>
+          <span class="mode-icon">📚</span>
+          <h3>Study Room</h3>
+          <p>Focus & Pomodoro</p>
+        </button>
+        <button class="mode-card" data-mode="break">
+          <div class="mode-glow glow-break"></div>
+          <span class="mode-icon">☕</span>
+          <h3>Break Room</h3>
+          <p>Chill & Reset</p>
+        </button>
+        <button class="mode-card" data-mode="fun">
+          <div class="mode-glow glow-fun"></div>
+          <span class="mode-icon">🎮</span>
+          <h3>Fun Room</h3>
+          <p>Games, challenges & chaos</p>
+        </button>
+        <button class="mode-card" data-mode="playyard">
+          <div class="mode-glow glow-playyard"></div>
+          <span class="mode-icon">🧩</span>
+          <h3>Mini Playyard</h3>
+          <p>3D arcade room</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>window.PULSE_BACKEND_URL = "";</script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
+  <script src="/components/Prompt.js" defer></script>
+  <script src="/components/DrawingBoard.js" defer></script>
+  <script src="/components/RelaxMode.js" defer></script>
+  <script src="/components/FunMode.js" defer></script>
+  <script src="/components/ChaosArena.js" defer></script>
+  <script src="/room.js" defer></script>
+  <script src="/components/sheep-battle/Sheep.js" defer></script>
+  <script src="/components/sheep-battle/Lane.js" defer></script>
+  <script src="/components/sheep-battle/EnergySystem.js" defer></script>
+  <script src="/components/SheepPushBattle.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyncNest | Watch Together</title>
+  <meta name="description" content="Sync movies, music and video calls with your partner. Instant rooms, no sign-up." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Nunito:wght@400;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body class="landing-page">
+  <!-- Ambient background blobs -->
+  <div class="lp-bg" aria-hidden="true">
+    <div class="lp-grid-overlay"></div>
+    <div class="lp-blob lp-blob-1"></div>
+    <div class="lp-blob lp-blob-2"></div>
+    <div class="lp-blob lp-blob-3"></div>
+  </div>
+
+  <div class="sparkle-container" id="sparkleContainer"></div>
+
+  <header class="lp-header">
+    <div class="lp-logo">
+      <div class="lp-logo-dot"></div>
+      SyncNest
+    </div>
+    <button id="vibeToggle" class="vibe-toggle-btn" title="Switch between Cinema (Dark) and Pookie (Pink) themes">
+      <span class="vibe-icon-cinema">🎬 Vibe: Cinema</span>
+      <span class="vibe-icon-pookie">🎀 Vibe: Pookie</span>
+    </button>
+  </header>
+
+  <main class="lp-shell">
+    <!-- Hero -->
+    <section class="lp-hero">
+      <span class="lp-eyebrow">✦ Watch · Study · Chill Together</span>
+      <h1 class="lp-headline">
+        Your shared space,<br />
+        <span class="lp-headline-gradient">anywhere.</span>
+      </h1>
+      <p class="lp-subline">
+        Sync movies, study with the Pomodoro timer, and just vibe —
+        all in one room, with video &amp; chat included.
+      </p>
+
+      <div class="lp-features">
+        <div class="lp-feat">
+          <span class="lp-feat-icon">⚡</span>
+          <span>Instant rooms</span>
+        </div>
+        <div class="lp-feat">
+          <span class="lp-feat-icon">🎬</span>
+          <span>Synced video</span>
+        </div>
+        <div class="lp-feat">
+          <span class="lp-feat-icon">📚</span>
+          <span>Study mode</span>
+        </div>
+        <div class="lp-feat">
+          <span class="lp-feat-icon">☕</span>
+          <span>Break mode</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Auth card -->
+    <section class="lp-auth">
+      <div class="lp-auth-tabs" role="tablist">
+        <button class="lp-tab active" role="tab" data-target="create" id="tab-create" aria-selected="true"
+          aria-controls="card-create" title="Show room creation form">
+          Create Room
+        </button>
+        <button class="lp-tab" role="tab" data-target="join" id="tab-join" aria-selected="false"
+          aria-controls="card-join" title="Show room joining form">
+          Join Room
+        </button>
+      </div>
+
+      <div id="card-create" class="lp-card" role="tabpanel" aria-labelledby="tab-create">
+        <div class="lp-input-group">
+          <label for="createName">Your name</label>
+          <input id="createName" type="text" maxlength="24" placeholder="e.g. Alex" autocomplete="nickname" />
+        </div>
+        <button id="createRoomBtn" class="lp-btn-primary" title="Create a new private room instantly">
+          <span>Start New Room</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <div id="card-join" class="lp-card hidden" role="tabpanel" aria-labelledby="tab-join">
+        <div class="lp-input-group">
+          <label for="joinName">Your name</label>
+          <input id="joinName" type="text" maxlength="24" placeholder="e.g. Sam" autocomplete="nickname" />
+        </div>
+        <div class="lp-input-group">
+          <label for="joinRoomId">Room code</label>
+          <input id="joinRoomId" type="text" maxlength="40" placeholder="paste-code-here" />
+        </div>
+        <button id="joinRoomBtn" class="lp-btn-secondary" title="Join the room with the provided code">
+          <span>Join Room</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <polyline points="10 17 15 12 10 7" />
+            <line x1="15" y1="12" x2="3" y2="12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="lp-account-box" aria-labelledby="accountBoxTitle">
+        <div class="lp-account-head">
+          <h3 id="accountBoxTitle">Account</h3>
+          <span id="accountStatusPill" class="lp-account-status">Guest Mode</span>
+        </div>
+        <p id="accountStatusText" class="lp-account-text">
+          Optional account login to save your profile and preferences.
+        </p>
+
+        <div id="accountGuestPanel">
+          <div class="lp-account-switch">
+            <button id="accountSignupTab" type="button" class="lp-auth-mini active">Create Account</button>
+            <button id="accountLoginTab" type="button" class="lp-auth-mini">Login</button>
+          </div>
+
+          <form id="accountSignupForm" class="lp-account-form">
+            <div class="lp-input-group">
+              <label for="signupUsername">Username</label>
+              <input id="signupUsername" type="text" maxlength="24" placeholder="e.g. syncqueen" autocomplete="username" required />
+            </div>
+            <div class="lp-input-group">
+              <label for="signupEmail">Email</label>
+              <input id="signupEmail" type="email" maxlength="120" placeholder="e.g. you@example.com" autocomplete="email" required />
+            </div>
+            <div class="lp-input-group">
+              <label for="signupPassword">Password</label>
+              <input id="signupPassword" type="password" minlength="8" maxlength="128" placeholder="Minimum 8 characters" autocomplete="new-password" required />
+            </div>
+            <div class="lp-input-group">
+              <label for="signupDisplayName">Display Name</label>
+              <input id="signupDisplayName" type="text" maxlength="24" placeholder="e.g. Alex" autocomplete="nickname" />
+            </div>
+            <button id="signupSubmitBtn" type="submit" class="lp-btn-secondary">Create Account</button>
+          </form>
+
+          <form id="accountLoginForm" class="lp-account-form hidden">
+            <div class="lp-input-group">
+              <label for="loginIdentifier">Email or Username</label>
+              <input id="loginIdentifier" type="text" maxlength="120" placeholder="e.g. you@example.com" autocomplete="username" required />
+            </div>
+            <div class="lp-input-group">
+              <label for="loginPassword">Password</label>
+              <input id="loginPassword" type="password" minlength="8" maxlength="128" placeholder="Enter your password" autocomplete="current-password" required />
+            </div>
+            <button id="loginSubmitBtn" type="submit" class="lp-btn-secondary">Login</button>
+          </form>
+        </div>
+
+        <div id="accountUserPanel" class="lp-account-user hidden">
+          <div class="lp-account-userline">
+            <strong id="accountUserName">Signed in</strong>
+            <span id="accountUserMeta"></span>
+          </div>
+          <button id="accountLogoutBtn" type="button" class="lp-btn-secondary">Logout</button>
+        </div>
+
+        <div id="accountMessage" class="lp-account-message" aria-live="polite"></div>
+      </div>
+
+      <p class="lp-note">No sign-up needed to create or join rooms. Accounts are optional for saved preferences.</p>
+    </section>
+  </main>
+
+  <section class="lp-about-wrap" aria-labelledby="aboutSyncNestTitle">
+    <div class="lp-about-shell glass-panel">
+      <div class="lp-about-intro">
+        <span class="lp-about-kicker">About SyncNest</span>
+        <h2 id="aboutSyncNestTitle">Built for real-time connection, focus, and fun.</h2>
+        <p>
+          SyncNest is a shared online room experience for watching, studying, chatting, and playful co-op moments.
+          It combines synchronized media, room-based modes, and live interaction tools in one place.
+        </p>
+      </div>
+
+      <div class="lp-about-grid">
+        <article class="lp-about-card">
+          <h3>Copyright & Disclaimer</h3>
+          <p>
+            SyncNest does not host copyrighted movies, shows, or music files. Users are responsible for sharing and
+            accessing content only from legal sources and with proper rights in their region.
+          </p>
+          <p>
+            All third-party trademarks, logos, and media belong to their respective owners. This app is intended for
+            personal collaborative use.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <script src="/index.js" defer></script>
+</body>
+
+</html>

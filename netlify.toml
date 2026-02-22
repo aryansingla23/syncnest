@@ -1,0 +1,8 @@
+[build]
+  publish = "public"
+  command = "echo 'Static deploy'"
+
+[[redirects]]
+  from = "/room/*"
+  to = "/room.html"
+  status = 200

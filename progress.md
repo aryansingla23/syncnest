@@ -1,0 +1,323 @@
+Original prompt: Cinematic Event Mode in Fun Room — one tap triggers a 60-second themed event (Neon rave room, Rain + soft music + slow zoom, Dramatic countdown + suspense music, Fake award ceremony for funniest person). Make UI transform strongly with 3D feel without changing pre-existing features.
+
+- Added full Cinematic Event runtime wiring in public/components/FunMode.js.
+- Added missing button handlers/methods that were previously undefined.
+- Added synchronized event start handling from socket event fun:cinematic-start.
+- Added overlay restore logic after game-area re-render to prevent disappearing cinematic layer.
+- Added theme-based visual overlay rendering, countdown progress, and winner banner for award mode.
+- Added WebAudio ambient generation per cinematic theme with cleanup lifecycle.
+- Added graceful stop lifecycle with timer cleanup and class reset.
+- Added CSS for cinematic event buttons and active states.
+- Added comprehensive cinematic styling in public/styles.css: panel transforms, glass card, particle FX, per-theme palettes, and animations.
+
+TODO / next pass:
+- Run a browser interaction pass and verify Cinematic Event over each major fun sub-mode (watchparty/AI/game starter).
+- Optional polish: add a visual toggle to choose a specific theme instead of random trigger.
+- Syntax validated with `node --check` for `public/components/FunMode.js`, `server.js`, and `public/room.js`.
+- Local dev server started outside sandbox (`npm run dev`) and reports `WatchParty running on http://localhost:3000`.
+- Local HTML endpoint verified contains Cinematic Event and Sync Play controls.
+- Browser automation not executed because Playwright is not installed in this workspace/runtime.
+- Added stop controls in Fun toolbar: Stop Event, Stop Teleport, and Teleport Audio toggle.
+- Added client socket listeners and emitters for `fun:cinematic-stop`, `fun:teleport-stop`, and `fun:teleport-cleared`.
+- Added universe clear lifecycle in FunMode to exit teleport visuals/audio and restore default vibe indicator.
+- Added per-user teleport audio mute state in localStorage (`pulseroom_universe_audio_muted`) and mute/unmute handling without affecting other app audio features.
+- Fixed hero-button visibility conflict by increasing selector specificity (`.toolbar-icon-btn.btn-watch-hero` / `.toolbar-icon-btn.btn-cinematic-hero`).
+- Added toolbar wrapping behavior for mid-width screens to prevent controls from being clipped/disappearing.
+- Added Crowd Energy Simulation to Fun Room with synced socket event `fun:crowd-hype`.
+- New server support: `fun:crowd-hype` relay with reason/strength validation.
+- New client layer `#funCrowdLayer` with hype banner, audience wave, confetti burst, and applause WebAudio.
+- Crowd effects auto-triggered on score gain, chaos, teleport, cinematic trigger, reaction actions, and challenge start/game start.
+- Added conservative debounce for crowd emits to avoid spam while keeping events lively.
+- Added Emotional Micro-Experiences in Fun Room: Send Hug (hold-to-trigger), Thought Bubble Mode (floating thought composer + bubbles), and Night Confession Mode (dark themed state + rotating deep prompts + ambient audio).
+- Added new Fun Room layers in `public/room.html`: `#funHugLayer`, `#funThoughtLayer`, `#funConfessionLayer`.
+- Added new Fun toolbar controls in `public/room.html`: `#btnSendHug`, `#btnThoughtMode`, `#btnNightConfession`.
+- Added socket handlers in `server.js` for `fun:hug`, `fun:thought`, and `fun:confession-toggle`, plus synced room state `room.fun.confession`.
+- Added corresponding client socket listeners and handlers in `public/components/FunMode.js`.
+- Added Hug/Thought/Confession UI styles and animations in `public/styles.css`.
+- Refined button state rendering in `public/components/FunMode.js` to preserve icon+label markup (`innerHTML` with `<span>`) for Hug and Confession controls.
+- Re-validated syntax: `node --check public/components/FunMode.js`, `node --check server.js`, `node --check public/room.js`.
+- Local dev server started with elevated permissions (`npm run dev`) and reports `WatchParty running on http://localhost:3000`.
+- Localhost bundle/markup spot-check confirmed new controls and methods are present in served files.
+
+TODO / next pass:
+- Run an interactive browser click-flow verification (Playwright currently unavailable in workspace), especially hold-to-hug timing and confession prompt rotation under rapid mode switching.
+- Added new Fun Room mode `miniplayyard` (UI label: Mini Playyard) without removing existing features.
+- Added launch entry points in `public/room.html`:
+  - Hero button: `#btnOpenMiniPlayyardHero`
+  - Toolbar button: `#btnOpenMiniPlayyard`
+  - Games submenu item: `.sub-game-btn[data-game="miniplayyard"]`
+- Updated `public/components/FunMode.js`:
+  - Added `miniplayyard` to `gamePool`.
+  - Added click handlers for new Mini Playyard hero/toolbar buttons.
+  - Added `loadGame` switch case for `miniplayyard`.
+  - Added `initMiniPlayyard()` with a dedicated 3D animated arena scene and two interaction buttons (`Hyper Warp`, `Claim +7 XP`).
+- Updated `public/styles.css` with Mini Playyard visual system:
+  - New button styles (`.mini-playyard-btn`, `.btn-mini-playyard-hero`, `.mini-playyard-sub`).
+  - New 3D arena styles (`.mini-playyard-shell`, `.mini-grid-floor`, `.mini-cube`, `.mini-energy-ring`, glow elements).
+  - Added keyframe animations for star pulse, floor motion, ring rotation, cube spin/drift, and warp acceleration state.
+  - Added mobile responsive adjustments for Mini Playyard.
+- Verification:
+  - Syntax checks passed: `node --check public/components/FunMode.js`, `node --check public/room.js`, `node --check server.js`.
+  - Local server running and localhost asset checks confirm Mini Playyard markup, logic, and CSS are present.
+
+TODO / next pass:
+- Run interactive browser flow tests for Mini Playyard button clicks/animations once Playwright is available.
+- Upgraded Mini Playyard from a Fun sub-game into a true room-level mode (`playyard`) with dedicated full-room panel and visuals.
+- Added new room panel in `public/room.html` (`#playyardPanel`) with full-screen style Mini Playyard layout and controls.
+- Added new mode selector card in overlay (`data-mode="playyard"`) so users can directly enter Playyard like Study/Break/Fun.
+- Updated mode switching in `public/room.js`:
+  - Added `playyard` to mode badge map.
+  - Added `playyard` branch in `applyRoomMode` to show only Playyard panel and apply body class `playyard-room-active`.
+  - Added URL support for `?mode=playyard`.
+  - Added Playyard controls: Hyper Warp animation trigger and +7 XP claim, plus back-to-fun action.
+- Updated Fun mode integration in `public/components/FunMode.js`:
+  - Mini Playyard toolbar/hero/submenu actions now navigate to room mode `playyard` via `setMode("playyard")`.
+  - Removed `miniplayyard` from random game pool to avoid surprise fallback to sub-game when room mode is expected.
+- Added Playyard layout/styling in `public/styles.css`:
+  - Dedicated panel styling (`.playyard-panel`, `.playyard-room-shell`, `.playyard-full-shell`).
+  - Full-room behavior class (`body.playyard-room-active`) hides sidebar and expands main area.
+  - Added mode overlay glow (`.glow-playyard`) and responsive mode-card grid update.
+- Validation:
+  - Syntax checks passed (`public/room.js`, `public/components/FunMode.js`, `server.js`).
+  - Localhost bundle checks confirm Playyard panel/mode/style and Fun->Playyard navigation logic are served.
+
+TODO / next pass:
+- Run visual/browser interaction pass to confirm exact full-screen feel and spacing across desktop+mobile, then tune animation intensity if needed.
+- Added a new homepage About section in `public/index.html` with:
+  - App overview intro,
+  - Copyright & disclaimer block,
+  - Tech stack block.
+- Added matching landing-page styles in `public/styles.css` for `.lp-about-*` components, including responsive behavior (single-column cards on <=960px).
+- Fixed homepage scroll lock after About section addition by changing `.landing-page` overflow from hidden to `overflow-x: hidden; overflow-y: auto;` in `public/styles.css`.
+- Implemented Mini Playyard feature bundle (1 + 2 + 4) as a dedicated room-mode system without altering existing Study/Break/Fun flows.
+- Added Mini Playyard gameplay UI in `public/room.html`:
+  - Micro games selector: Tap Duel, Reaction Race, Dodge Grid, Memory Flash.
+  - Start Round CTA, dynamic round panel, reaction target controls, memory options.
+  - Player HUD cards, timer, drop claim card, unlock strip.
+- Added Playyard gameplay client runtime in `public/room.js`:
+  - Realtime state sync (`playyard:state`) rendering.
+  - Round controls + actions (`playyard:start-round`, `playyard:action`, `playyard:claim-drop`).
+  - Round result handling (`playyard:round-ended`) + freeze feedback.
+  - Dynamic score, XP/level/wins display, unlock display, power-up UI, and round timer ticker.
+- Added Playyard backend state + events in `server.js`:
+  - Room state now includes `room.playyard` with player progression, active round, history.
+  - Snapshot now returns `playyard` payload.
+  - New handlers: `playyard:request-state`, `playyard:start-round`, `playyard:action`, `playyard:claim-drop`.
+  - Server-side round lifecycle, scoring per mini game, XP/level progression, unlock grants, and random power-up drop generation.
+  - Added safe mode sanitization for room mode updates (`study|break|fun|playyard`).
+  - Added timer cleanup and playyard participant cleanup on room leave/disconnect.
+- Added Playyard UI styles in `public/styles.css` for new HUD/game/round/drop/unlock components.
+- Validation:
+  - Syntax checks passed for `server.js`, `public/room.js`, `public/components/FunMode.js`.
+  - Localhost verification confirms updated Playyard UI and client logic are served.
+
+TODO / next pass:
+- Run full interactive 2-client gameplay pass to tune score pacing and power-up frequency.
+- Added Mini Playyard mini-call panel integration (mini tiles only, no fullscreen control in Playyard):
+  - `public/room.html`: new `#playyardMiniCall` block with start/end and collapse controls plus local/partner mini video tiles.
+  - `public/room.js`: added Playyard mini-call UI refs, state sync helpers, remote stream tracking (`state.remoteStreams`), and handlers to start/end/collapse via existing call pipeline.
+  - `public/styles.css`: added Playyard mini-call visuals (compact glass tiles) and responsive behavior for <=900px and <=560px.
+- Verified syntax: `node --check public/room.js`, `node --check server.js`, `node --check public/components/FunMode.js` all pass.
+- Ran app locally with elevated permissions: `npm run dev` => `WatchParty running on http://localhost:3000`.
+- Verified localhost response (outside sandbox networking): `HTTP/1.1 200 OK` from `http://localhost:3000`.
+- Playwright loop via `develop-web-game` client is currently blocked in this environment because `playwright` package is missing (`ERR_MODULE_NOT_FOUND`).
+- Updated Mini Playyard mini-call UX to true floating popup video windows for gameplay visibility.
+- `public/room.html`: added popup role classes to mini tiles (`playyard-mini-video-local`, `playyard-mini-video-partner`).
+- `public/room.js`: refined `syncPlayyardMiniCallUI()` to:
+  - toggle live state class on `#playyardMiniCall`,
+  - hide/show popups based on call state,
+  - disable collapse when call inactive,
+  - update popup visibility controls (`👁` / `🙈`) and titles.
+- `public/styles.css`: converted Playyard mini-call into bottom-right floating glass dock with absolute popup video tiles over the game area; responsive size tuning for <=900px and <=560px.
+- Confirmed no fullscreen control added for Mini Playyard call popups.
+- Validation: `node --check public/room.js`, `node --check server.js`, `node --check public/components/FunMode.js` all pass.
+- Local server still healthy: `HTTP/1.1 200 OK` on `http://localhost:3000`.
+- Added new multiplayer Mini Playyard game: Sheep Push Battle (isolated add-on, no existing game logic replaced).
+- New server engine file: `server/sheepPushBattleEngine.js`
+  - 3-lane authoritative simulation.
+  - Sheep types (small/medium/large) with speed/force/cost.
+  - Lane collision force resolution + push direction.
+  - Lane capture + first-to-2 win / 90-second timeout winner logic.
+  - Energy regen + spawn cost validation.
+  - Real-time socket events: `sheep:request-state`, `sheep:start-match`, `sheep:spawn`, `sheep:stop-match`, `sheep:state`, `sheep:spawn-result`, `sheep:match-started`, `sheep:match-stopped`.
+- Server integration changes in `server.js` are minimal and additive:
+  - Instantiate engine once.
+  - Register socket handlers per connection.
+  - Sync participant join/leave into Sheep Push state.
+  - Cleanup ticker when room is destroyed.
+- New frontend modular components:
+  - `public/components/sheep-battle/Sheep.js`
+  - `public/components/sheep-battle/Lane.js`
+  - `public/components/sheep-battle/EnergySystem.js`
+  - `public/components/SheepPushBattle.js`
+- New Sheep Push Battle styling file:
+  - `public/components/sheep-battle/sheep-push-battle.css`
+- `public/room.html` updated only to load the new CSS/JS assets.
+- Sheep Push Battle UI mounts dynamically inside Mini Playyard:
+  - New launcher button in Playyard games row.
+  - Dedicated panel with timer, lane score, animated lanes, spawn controls, lane picker, energy bar, and victory burst.
+  - Proper enter/exit behavior; existing Mini Playyard sections are only visually hidden while Sheep Push panel is active.
+- Validation:
+  - Syntax checks passed for all added/edited JS files.
+  - Local server started successfully after integration (`npm run dev`).
+  - Room HTML response confirms Sheep Push assets are present.
+
+TODO / next pass:
+- Run two-browser interactive multiplayer pass to tune balancing (force/speed/cost values) and collision feel with real latency.
+- Fixed Mini Playyard "Start Mini Call" reliability issue in `public/room.js`.
+- Added `state.callBooting` to prevent duplicate clicks/race conditions while media permissions are resolving.
+- Improved call startup compatibility with fallback media constraints:
+  1) audio + HD video preference,
+  2) audio + basic video,
+  3) audio-only fallback.
+- Updated Playyard mini-call button UI state:
+  - shows `⏳ Connecting...` while booting,
+  - disables toggle during boot,
+  - still keeps fullscreen disabled for Playyard mini-call.
+- Restarted local app and confirmed localhost responds with `HTTP/1.1 200 OK`.
+- Mini Call clickability fix (Playyard): increased stacking priority for `.playyard-mini-call` (`z-index: 28`, `isolation: isolate`, explicit pointer events) in `public/styles.css` to prevent overlap from neighboring Playyard panels intercepting clicks.
+- Sheep Push Battle tuning pass (requested: slower movement + better graphics/animation):
+  - Slowed sheep movement speeds in `server/sheepPushBattleEngine.js`:
+    - small: `0.24 -> 0.16`
+    - medium: `0.18 -> 0.12`
+    - large: `0.13 -> 0.088`
+  - Reduced pushback aggressiveness for smoother collisions:
+    - `pushStrength max: 0.015 -> 0.011`
+    - coefficient: `0.0022 -> 0.0018`
+  - Tightened tick delta cap for more stable interpolation (`dt max 0.18 -> 0.14`).
+- Sheep animation upgrades:
+  - `public/components/sheep-battle/Sheep.js`: per-type sheep face, random gait phase, impact bounce method.
+  - `public/components/sheep-battle/Lane.js`: collision impact now triggers per-sheep bounce feedback.
+- Visual quality upgrades (`public/components/sheep-battle/sheep-push-battle.css`):
+  - Enhanced lane styling with animated flow grid, sheen pass, and ambient pulse.
+  - Stronger capture glows for left/right lane ownership.
+  - Added sheep aura + walking step animation + directional gait.
+  - Added sheep impact micro-animation and spawn button hover polish.
+- Validation:
+  - Syntax checks passed for server + Sheep Battle component files.
+  - App restarted and healthy on localhost (`HTTP/1.1 200 OK`).
+- Sheep Push Battle flow updated per request: random sheep deployment queue + lane-click spawn only.
+- Server-side authoritative randomness (`server/sheepPushBattleEngine.js`):
+  - Added per-player `nextSheep` state.
+  - Spawn now ignores client-provided sheep size and always deploys player's current `nextSheep`.
+  - After deploy, server rolls next random sheep type.
+  - Snapshot payload now includes viewer `nextSheep` and player-side `nextSheep` metadata.
+- Client updates (`public/components/SheepPushBattle.js`):
+  - Removed manual size selection UI/buttons.
+  - Added "Next Ready" card showing upcoming random sheep type and cost.
+  - Lane taps now directly deploy (`sheep:spawn` with lane only) and still highlight selected lane.
+  - Status text and low-energy messaging now reference the next queued sheep.
+- Styling updates (`public/components/sheep-battle/sheep-push-battle.css`):
+  - Added next-sheep card + lane tap hint styles.
+  - Added lane hover affordance for tap-to-deploy interaction.
+- Win rule check remains intact: game already ends when one side captures 2 of 3 lanes (`score.left >= 2 || score.right >= 2`).
+- Validation:
+  - Syntax checks passed (`server/sheepPushBattleEngine.js`, `public/components/SheepPushBattle.js`, `server.js`, `public/room.js`).
+  - Local server restarted and healthy on localhost (`HTTP/1.1 200 OK`).
+- SyncNest naming pass completed across runtime storage keys with backward compatibility:
+  - Added dual-read/dual-write migration to new keys in `public/index.js`, `public/room.js`, `public/ambient-modes.js`, `public/components/FunMode.js`, and `public/components/RelaxMode.js`.
+  - New primary keys now use `syncnest_*` while legacy `watchparty_*` / `pulseroom_*` values are still honored.
+- Fixed homepage auth tab regression:
+  - Added handlers for `#tab-create` and `#tab-join` in `public/index.js` so users can switch between Create Room and Join Room panels.
+- Hug UX fix and polish:
+  - Kept tap-to-send + hold support in `public/components/FunMode.js`.
+  - Added missing hug animation keyframes in `public/styles.css` (`hug-hearts-rise`, `hug-heart-float`, `hug-band-left`, `hug-band-right`).
+- Verification run:
+  - Syntax checks passed for all core frontend/backend files (`server.js`, `public/room.js`, `public/index.js`, `public/components/*`, `server/sheepPushBattleEngine.js`).
+  - Local server restarted and running: `SyncNest running on http://localhost:3000`.
+  - Endpoint smoke checks passed: `/`, `/room/:id`, `/room/:id/modes`, `/health`, Socket.IO polling handshake.
+  - Button wiring audit script now reports no unreferenced button IDs across homepage, ambient modes, and room pages.
+- Limitation observed:
+  - Full Playwright click-through automation is blocked in this environment (no npm registry access to fetch `@playwright/cli`), so validation was done via static handler audits + live endpoint/runtime smoke checks.
+- Added full account system for SyncNest:
+  - New secure auth store module: `server/authStore.js`.
+  - Passwords are hashed with `crypto.scrypt` + per-user salt.
+  - Token-based auth added (HMAC-signed bearer token).
+  - Persistent account storage on disk at `server/data/accounts.json` (auto-created).
+- New backend API routes in `server.js`:
+  - `POST /api/auth/signup`
+  - `POST /api/auth/login`
+  - `GET /api/auth/me`
+  - `PUT /api/user/preferences`
+  - `POST /api/auth/logout`
+  - Added `express.json` middleware for API payloads.
+- Homepage account UI added in `public/index.html`:
+  - Create Account + Login forms in a dedicated account box.
+  - Signed-in panel with user info and logout button.
+  - Removed duplicate inline tab script and kept logic in `index.js`.
+- Homepage auth runtime in `public/index.js`:
+  - Session storage (`syncnest_auth_token`, `syncnest_auth_user`).
+  - Startup session hydration via `/api/auth/me`.
+  - Signup/login/logout handlers.
+  - Account-aware preference sync (vibe/display name/last room).
+- Room account integration:
+  - Added account badge in topbar (`public/room.html`, `public/styles.css`).
+  - Added auth hydration + silent preference sync in `public/room.js` (mode/vibe/room updates).
+- Styling:
+  - Added landing account component styles and validation state.
+  - Added topbar account badge style.
+- Validation:
+  - Syntax checks passed for updated files (`server.js`, `server/authStore.js`, `public/index.js`, `public/room.js`).
+  - Live API smoke tests passed for signup/login/me/preferences update.
+  - Served HTML/JS route checks confirm account UI + runtime shipped in build.
+- Added a new Mini Playyard game module: `public/components/ChaosArena.js` (canvas-based Spinner Pit arena).
+- Chaos Arena features implemented:
+  - Smooth arrow-key movement with acceleration + friction + speed cap.
+  - Delta-time physics update loop (`requestAnimationFrame`).
+  - Space dash with 3s cooldown and in-canvas cooldown indicator.
+  - Rotating center bar knockback collision.
+  - Arena shrink starts after 40s.
+  - Out-of-bounds elimination and winner state display.
+  - Lightweight sound system via Web Audio buffers (dash/hit/eliminate/countdown).
+  - Throttled position sync, dash sync, elimination sync.
+  - Full lifecycle cleanup: key listeners, RAF, socket listeners, and sound suspend.
+- Room integration updates:
+  - Added `Chaos Arena` selector button in `public/room.html`.
+  - Added script include `/components/ChaosArena.js`.
+  - `public/room.js` now mounts/unmounts chaos canvas only when selected, pauses on mode switch, and destroys on exit.
+  - Start button dispatches `chaos-arena:start` for this mode; existing game behavior unchanged for other playyard games.
+- Backend realtime relay/state support added in `server.js`:
+  - Room state: `room.chaosArena`.
+  - New socket events: `chaos-arena:request-state`, `chaos-arena:start`, `chaos-arena:stop`, `chaos-arena:player-update`, `chaos-arena:dash`, `chaos-arena:eliminated`.
+  - Winner resolution and state broadcasting.
+- Styling updates in `public/styles.css` for `chaos-arena-wrap/canvas` and active target state.
+- Validation:
+  - Syntax checks pass for `public/components/ChaosArena.js`, `public/room.js`, `server.js`.
+  - Local server restarted successfully (`SyncNest running on http://localhost:3000`).
+  - Served HTML/JS checks confirm Chaos Arena button, script, and socket wiring are present.
+- Chaos Arena follow-up polish:
+  - Added socket listener lifecycle guard (`socketBound`) to prevent duplicate listeners on mount/unmount.
+  - Added room-mode pause/unmount integration so Chaos Arena loop is paused outside Playyard and destroyed on room exit/unload.
+  - Added in-canvas status line support via `getStatusLine()` for timer card updates while Chaos is live.
+  - Optimized main-loop allocations by replacing per-frame `Array.from(...).filter(...)` and callback-heavy loops with direct iteration.
+  - Cached radial glow gradient on resize to avoid recreating it every frame.
+- Added fullscreen support for Chaos Arena and Sheep Push Battle while keeping Mini Call active:
+  - `public/room.html`: new Playyard control button `#playyardBattleFullscreenBtn`.
+  - `public/room.js`: added Playyard fullscreen target helpers, toggle handler, and visibility logic (shown for Chaos Arena or active Sheep Push Battle).
+  - `public/room.js`: exits Playyard fullscreen safely when switching away from Playyard mode.
+  - `public/room.js`: wired fullscreen refresh to both `fullscreenchange` and Sheep battle visibility custom events.
+  - `public/components/SheepPushBattle.js`: added in-panel fullscreen button (`#spbFullscreenBtn`) with toggle + state updates.
+  - `public/components/SheepPushBattle.js`: emits `playyard:sheep-battle-visibility` on enter/exit to keep shared UI state synced.
+  - `public/styles.css`: added Playyard shell fullscreen visual/layout styles and button active states.
+  - `public/components/sheep-battle/sheep-push-battle.css`: styled Sheep Push fullscreen button and fullscreen panel height behavior.
+- Validation:
+  - Syntax checks passed: `node --check public/room.js`, `node --check public/components/SheepPushBattle.js`.
+- Bugfix pass for Break Room controls + moment/mic issues:
+  - Added missing Break fullscreen control button in Break action row (`#breakToolbarFullscreenBtn`) so RelaxMode fullscreen handler is actually reachable.
+  - Changed Break fullscreen behavior to target `document.documentElement` for reliable full-app fullscreen controls (prevents losing interactive controls due subtree fullscreen).
+  - Fixed duplicated `setPartnerMaximized` override bug in `public/components/RelaxMode.js` by keeping one canonical implementation that updates state + UI + sync.
+  - Fixed Moment Wall toggle issue by removing duplicate inline toggle on `#breakShowMomentsBtn` (it was toggling twice: inline + JS listener).
+  - Improved save-moment UX: saving now auto-opens Moment Wall panel so user sees saved memory immediately.
+  - Hardened mic toggle behavior by adding `applyMuteStateToLocalMedia()` in `public/room.js` to apply mute state to local stream audio tracks and active peer senders; wired both `#toggleMicBtn` and legacy `#muteBtn` to same handler.
+  - Added system messages when mic is muted/unmuted.
+- Validation:
+  - Syntax checks pass for `public/components/RelaxMode.js` and `public/room.js`.
+  - Served room HTML confirms `#breakToolbarFullscreenBtn` and corrected `#breakShowMomentsBtn` are present.
+- Fixed Breathing Guide not functioning in Break Room:
+  - `public/components/RelaxMode.js`: added explicit `startBreathingGuide()` / `stopBreathingGuide()` lifecycle with stable interval cleanup and active-state tracking.
+  - `public/components/RelaxMode.js`: Breathing guide now properly stops when leaving Break mode.
+  - `public/components/RelaxMode.js`: wellness button now gets active visual state while guide is running.
+  - `public/styles.css`: added missing `.breathing-guide-overlay` and `.breathing-circle` visuals plus a single consistent `@keyframes breathe` animation.
+  - `public/styles.css`: added `.btn-wellness.active` style for clear on/off feedback.
+- Validation:
+  - Syntax check passed for `public/components/RelaxMode.js`.
