@@ -9,7 +9,7 @@ const LANE_COUNT = 3;
 const MATCH_DURATION_MS = 90_000;
 const ENERGY_MAX = 100;
 const ENERGY_REGEN_PER_SEC = 9;
-const TICK_MS = 70;
+const TICK_MS = 40;
 
 function clamp(value, min, max) {
   const numeric = Number(value);
@@ -176,66 +176,118 @@ function createEngine({ io, rooms }) {
     battleTickers.set(roomId, timer);
   }
 
-  function resolveLaneForces(lane, now) {
-    const leftSheep = lane.sheep.filter((unit) => unit.side === "left");
-    const rightSheep = lane.sheep.filter((unit) => unit.side === "right");
+  function resolveLaneForces(lane, now, dt) {
+    const leftSheep = lane.sheep.filter((unit) => unit.side === "left").sort((a, b) => b.x - a.x);
+    const rightSheep = lane.sheep.filter((unit) => unit.side === "right").sort((a, b) => a.x - b.x);
 
-    const collidingPairs = [];
-    const collidingLeftSet = new Set();
-    const collidingRightSet = new Set();
+    for (let i = 1; i < leftSheep.length; i++) {
+      const front = leftSheep[i - 1];
+      const back = leftSheep[i];
+      const dist = (front.size + back.size) * 0.42;
+      if (back.x > front.x - dist) {
+        back.x = front.x - dist;
+      }
+    }
 
-    leftSheep.forEach((leftUnit) => {
-      rightSheep.forEach((rightUnit) => {
-        const collisionDistance = (Number(leftUnit.size) + Number(rightUnit.size)) * 0.92;
-        if (Math.abs(Number(leftUnit.x) - Number(rightUnit.x)) <= collisionDistance) {
-          collidingPairs.push({ leftUnit, rightUnit, collisionDistance });
-          collidingLeftSet.add(leftUnit);
-          collidingRightSet.add(rightUnit);
-        }
-      });
-    });
+    for (let i = 1; i < rightSheep.length; i++) {
+      const front = rightSheep[i - 1];
+      const back = rightSheep[i];
+      const dist = (front.size + back.size) * 0.42;
+      if (back.x < front.x + dist) {
+        back.x = front.x + dist;
+      }
+    }
 
-    if (collidingPairs.length === 0) {
+    if (leftSheep.length === 0 || rightSheep.length === 0) {
       lane.pushDirection = 0;
       lane.pushStrength = 0;
       return;
     }
 
-    collidingPairs.forEach(({ leftUnit, rightUnit, collisionDistance }) => {
-      const leftX = Number(leftUnit.x);
-      const rightX = Number(rightUnit.x);
-      const middle = (leftX + rightX) / 2;
-      const halfGap = collisionDistance * 0.52;
-      leftUnit.x = clamp(Math.min(leftX, middle - halfGap), -0.2, 1.2);
-      rightUnit.x = clamp(Math.max(rightX, middle + halfGap), -0.2, 1.2);
-    });
+    const frontLeft = leftSheep[0];
+    const frontRight = rightSheep[0];
+    const frontDist = (frontLeft.size + frontRight.size) * 0.45;
 
-    const collidingLeft = Array.from(collidingLeftSet);
-    const collidingRight = Array.from(collidingRightSet);
-    const leftForce = collidingLeft.reduce((sum, unit) => sum + Number(unit.force || 0), 0);
-    const rightForce = collidingRight.reduce((sum, unit) => sum + Number(unit.force || 0), 0);
-    const diff = leftForce - rightForce;
+    if (frontRight.x - frontLeft.x <= frontDist + 0.005) {
+      let collidingLeft = [frontLeft];
+      for (let i = 1; i < leftSheep.length; i++) {
+        const prev = leftSheep[i - 1];
+        const curr = leftSheep[i];
+        const dist = (prev.size + curr.size) * 0.42;
+        if (prev.x - curr.x <= dist + 0.01) {
+          collidingLeft.push(curr);
+        } else {
+          break;
+        }
+      }
 
-    if (Math.abs(diff) <= 0.02) {
+      let collidingRight = [frontRight];
+      for (let i = 1; i < rightSheep.length; i++) {
+        const prev = rightSheep[i - 1];
+        const curr = rightSheep[i];
+        const dist = (prev.size + curr.size) * 0.42;
+        if (curr.x - prev.x <= dist + 0.01) {
+          collidingRight.push(curr);
+        } else {
+          break;
+        }
+      }
+
+      const leftForce = collidingLeft.reduce((sum, u) => sum + Number(u.force || 0), 0);
+      const rightForce = collidingRight.reduce((sum, u) => sum + Number(u.force || 0), 0);
+      const diff = leftForce - rightForce;
+
+      let direction = 0;
+      let pushStrength = 0;
+
+      if (Math.abs(diff) <= 0.02) {
+        direction = 0;
+        pushStrength = 0.002;
+      } else {
+        direction = diff > 0 ? 1 : -1;
+        pushStrength = Math.min(0.028, 0.0048 + Math.abs(diff) * 0.0032);
+
+        const pushSpeed = pushStrength * (1000 / 70);
+        const shiftL = pushSpeed * direction * 0.45 * dt;
+        const shiftR = pushSpeed * direction * 1.02 * dt;
+
+        collidingLeft.forEach(u => u.x += shiftL);
+        collidingRight.forEach(u => u.x += shiftR);
+      }
+
+      if (frontRight.x - frontLeft.x < frontDist) {
+        const overlap = frontDist - (frontRight.x - frontLeft.x);
+        const adj = overlap / 2;
+        collidingLeft.forEach(u => u.x -= adj);
+        collidingRight.forEach(u => u.x += adj);
+      }
+
+      for (let i = 1; i < leftSheep.length; i++) {
+        const front = leftSheep[i - 1];
+        const back = leftSheep[i];
+        const dist = (front.size + back.size) * 0.42;
+        if (back.x > front.x - dist) {
+          back.x = front.x - dist;
+        }
+      }
+      for (let i = 1; i < rightSheep.length; i++) {
+        const front = rightSheep[i - 1];
+        const back = rightSheep[i];
+        const dist = (front.size + back.size) * 0.42;
+        if (back.x < front.x + dist) {
+          back.x = front.x + dist;
+        }
+      }
+
+      lane.pushDirection = direction;
+      lane.pushStrength = pushStrength;
+      if (now - Number(lane.impactAt || 0) > 400) {
+        lane.impactAt = now;
+      }
+    } else {
       lane.pushDirection = 0;
-      lane.pushStrength = 0.002;
-      lane.impactAt = now;
-      return;
+      lane.pushStrength = 0;
     }
-
-    const direction = diff > 0 ? 1 : -1;
-    const pushStrength = Math.min(0.028, 0.0048 + Math.abs(diff) * 0.0032);
-
-    collidingLeft.forEach((unit) => {
-      unit.x = clamp(Number(unit.x) + pushStrength * direction * 0.45, -0.2, 1.2);
-    });
-    collidingRight.forEach((unit) => {
-      unit.x = clamp(Number(unit.x) + pushStrength * direction * 1.02, -0.2, 1.2);
-    });
-
-    lane.pushDirection = direction;
-    lane.pushStrength = pushStrength;
-    lane.impactAt = now;
   }
 
   function tickBattle(roomId) {
@@ -255,7 +307,7 @@ function createEngine({ io, rooms }) {
       return;
     }
 
-    const dt = clamp((now - Number(state.lastTickAt || now)) / 1000, 0.03, 0.14);
+    const dt = clamp((now - Number(state.lastTickAt || now)) / 1000, 0.02, 0.14);
     state.lastTickAt = now;
 
     state.lanes.forEach((lane) => {
@@ -266,7 +318,7 @@ function createEngine({ io, rooms }) {
         unit.x = clamp(Number(unit.x) + direction * Number(unit.speed || 0) * dt, -0.3, 1.3);
       });
 
-      resolveLaneForces(lane, now);
+      resolveLaneForces(lane, now, dt);
       lane.sheep = lane.sheep.filter((unit) => Number(unit.x) >= -0.18 && Number(unit.x) <= 1.18);
 
       const leftReached = lane.sheep.some((unit) => unit.side === "left" && Number(unit.x) >= 0.985);
