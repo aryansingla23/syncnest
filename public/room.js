@@ -794,7 +794,7 @@ function applyRoomMode(mode) {
   if (mode !== "playyard") {
     const playyardTarget = getPlayyardFullscreenTarget();
     if (playyardTarget && document.fullscreenElement === playyardTarget) {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
   }
   syncPlayyardMiniCallUI();
@@ -1552,13 +1552,61 @@ ui.breakGoFunBtn?.addEventListener("click", () => activateMode("fun"));
 ui.playyardGameButtons?.forEach((btn) => {
   btn.addEventListener("click", () => setPlayyardSelectedGame(btn.dataset.playyardGame));
 });
+function showPlayyardInstructions(title, prompt, onStart) {
+  const container = document.querySelector(".playyard-full-shell") || document.querySelector(".mini-playyard-stage");
+  if (!container) {
+    onStart();
+    return;
+  }
+
+  const existing = container.querySelector(".game-instruction-panel");
+  if (existing) existing.remove();
+
+  const panelHtml = `
+    <div class="game-instruction-panel game-fade-in" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; width: 80%; max-width: 400px; text-align: center;">
+      <h2>${title}</h2>
+      <p>${prompt}</p>
+      <button id="btnStartActualPlayyardRound" class="btn-start-game">Start Game</button>
+    </div>
+  `;
+  container.insertAdjacentHTML("beforeend", panelHtml);
+
+  const btn = document.getElementById("btnStartActualPlayyardRound");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const panel = container.querySelector(".game-instruction-panel");
+      if (panel) {
+        panel.classList.remove("game-fade-in");
+        panel.classList.add("game-fade-out");
+        setTimeout(() => {
+          panel.remove();
+          onStart();
+        }, 300);
+      } else {
+        onStart();
+      }
+    });
+  }
+}
+
 ui.playyardStartRoundBtn?.addEventListener("click", () => {
-  void ensurePlayyardBattleFullscreen();
   if (playyardRuntime.selectedGame === "chaos-arena") {
+    void ensurePlayyardBattleFullscreen();
     ensureChaosArenaInstance()?.startMatch?.();
     return;
   }
-  socket.emit("playyard:start-round", { game: playyardRuntime.selectedGame });
+
+  const meta = playyardGameMeta[playyardRuntime.selectedGame];
+  if (!meta) {
+    void ensurePlayyardBattleFullscreen();
+    socket.emit("playyard:start-round", { game: playyardRuntime.selectedGame });
+    return;
+  }
+
+  showPlayyardInstructions(meta.title, meta.prompt, () => {
+    void ensurePlayyardBattleFullscreen();
+    socket.emit("playyard:start-round", { game: playyardRuntime.selectedGame });
+  });
 });
 ui.playyardWarpBtn?.addEventListener("click", () => {
   if (playyardRuntime.selectedGame === "chaos-arena") return;
@@ -1668,15 +1716,15 @@ function renderParticipants() {
       const baseClass = participant.id === state.meId ? "participant-pill participant-you" : "participant-pill";
       const isInactive = participant.visible === false;
       item.innerHTML = `
-        <span class="${baseClass} ${isInactive ? "participant-inactive" : ""}">
-          <span class="status-dot ${participant.inCall ? "live" : ""}"></span>
-          <span>${participant.name}${participant.id === state.meId ? " (you)" : ""}</span>
+    < span class="${baseClass} ${isInactive ? "participant - inactive" : ""}" >
+      <span class="status-dot ${participant.inCall ? " live" : ""}" ></span >
+        <span>${participant.name}${participant.id === state.meId ? " (you)" : ""}</span>
           ${isInactive ? "<small class=\"status-tag\">Inactive</small>" : ""}
           ${isInactive && participant.id !== state.meId ? "<button class=\"nudge-btn\" title=\"Nudge to focus\">🔔 Nudge</button>" : ""}
           ${participant.mood ? `<small class="participant-mood">${participant.mood}</small>` : ""}
-          <span class="focus-tag">${participant.focusTask ? "• " + participant.focusTask : ""}</span>
-        </span>
-      `;
+  <span class="focus-tag">${participant.focusTask ? "• " + participant.focusTask : ""}</span>
+        </span >
+    `;
       const nudgeBtn = item.querySelector(".nudge-btn");
       if (nudgeBtn) {
         nudgeBtn.onclick = (e) => {
@@ -1688,7 +1736,7 @@ function renderParticipants() {
       ui.participantList.appendChild(item);
 
       // Also update remote video tile focus state
-      const remoteTile = document.getElementById(`remote-${participant.id}`);
+      const remoteTile = document.getElementById(`remote - ${participant.id} `);
       if (remoteTile) {
         // Note: we need a way to know if they are focusing. 
         // For now, let's assume if they have a focus task and it's active room mode.
@@ -1723,7 +1771,7 @@ function renderLoveNotes() {
     const card = document.createElement("article");
     card.className = "note-card";
     const sentAt = new Date(note.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    card.innerHTML = `<p class="note-meta">${note.senderName} · ${sentAt}</p><p class="note-body"></p>`;
+    card.innerHTML = `< p class="note-meta" > ${note.senderName} · ${sentAt}</p > <p class="note-body"></p>`;
     card.querySelector(".note-body").textContent = note.text;
     ui.loveNotes.appendChild(card);
   }
@@ -1742,8 +1790,8 @@ function launchReaction(emoji) {
   const pop = document.createElement("span");
   pop.className = "reaction-pop";
   pop.textContent = emoji;
-  pop.style.left = `${10 + Math.random() * 80}%`;
-  pop.style.animationDuration = `${900 + Math.random() * 700}ms`;
+  pop.style.left = `${10 + Math.random() * 80}% `;
+  pop.style.animationDuration = `${900 + Math.random() * 700} ms`;
   ui.reactionRain.appendChild(pop);
   window.setTimeout(() => pop.remove(), 1900);
 }
@@ -1764,7 +1812,7 @@ function persistDateNightToLocal() {
 
 function addMessage({ senderName, text, mine = false, system = false, sentAt = Date.now() }) {
   const msg = document.createElement("div");
-  msg.className = `chat-msg ${mine ? "msg-sent" : "msg-received"}${system ? " system-msg" : ""}`;
+  msg.className = `chat - msg ${mine ? "msg-sent" : "msg-received"}${system ? " system-msg" : ""} `;
 
   const author = document.createElement("div");
   author.className = "msg-author";
@@ -1789,7 +1837,7 @@ async function copyInviteLinkToClipboard() {
   if (queryBackend) {
     inviteParams.set("backend", queryBackend);
   }
-  const inviteUrl = `${window.location.origin}/room/${encodeURIComponent(roomId)}?${inviteParams.toString()}`;
+  const inviteUrl = `${window.location.origin} /room/${encodeURIComponent(roomId)}?${inviteParams.toString()} `;
   try {
     await navigator.clipboard.writeText(inviteUrl);
     addSystemMessage("Invite link copied.");
@@ -1954,7 +2002,7 @@ function ensurePeerConnection(peerId) {
 
 function attachRemoteStream(peerId, stream) {
   state.remoteStreams.set(peerId, stream);
-  const existing = document.getElementById(`remote-${peerId}`);
+  const existing = document.getElementById(`remote - ${peerId} `);
   if (existing) {
     existing.querySelector("video").srcObject = stream;
     syncPlayyardMiniCallUI();
@@ -1963,10 +2011,10 @@ function attachRemoteStream(peerId, stream) {
 
   const tile = document.createElement("article");
   tile.className = "video-item remote-video";
-  tile.id = `remote-${peerId}`;
+  tile.id = `remote - ${peerId} `;
   const participantName = state.participants.get(peerId)?.name || "Participant";
   tile.innerHTML = `
-    <video autoplay playsinline></video>
+    < video autoplay playsinline ></video >
     <div class="video-label">${participantName}</div>
     <button class="tile-fullscreen-btn" title="Fullscreen video">⛶</button>
     <button class="btn-icon pin-btn" title="Pin video">📌</button>
@@ -1979,7 +2027,7 @@ function attachRemoteStream(peerId, stream) {
 }
 
 function togglePin(peerId) {
-  const tile = document.getElementById(`remote-${peerId}`);
+  const tile = document.getElementById(`remote - ${peerId} `);
   if (!tile) return;
 
   const isPinned = tile.classList.contains("pinned");
@@ -2001,7 +2049,7 @@ function removePeer(peerId) {
   }
   state.peers.delete(peerId);
   state.remoteStreams.delete(peerId);
-  const tile = document.getElementById(`remote-${peerId}`);
+  const tile = document.getElementById(`remote - ${peerId} `);
   if (tile) {
     tile.remove();
   }
@@ -2259,7 +2307,7 @@ socket.emit("join-room", { roomId, name: userName }, (payload) => {
   });
 
   addSystemMessage(`Joined as ${userName}.`);
-  addSystemMessage(`Realtime server: ${new URL(socketServerUrl).hostname}`);
+  addSystemMessage(`Realtime server: ${new URL(socketServerUrl).hostname} `);
   addSystemMessage("Share your invite link to watch together.");
   void syncAccountPreferences({
     displayName: userName,
@@ -2335,9 +2383,9 @@ socket.on("playyard:round-started", ({ game, startedBy }) => {
 socket.on("playyard:round-ended", ({ game, reason, teamCleared, teamScore, winnerId, winnerName, score, xpAwarded }) => {
   if (game === "dodge-together") {
     if (reason === "crash") {
-      addSystemMessage(`Dodge Together crashed. Team score: ${Number(teamScore) || 0}.`);
+      addSystemMessage(`Dodge Together crashed.Team score: ${Number(teamScore) || 0}.`);
     } else if (teamCleared) {
-      addSystemMessage(`Dodge Together cleared. Team score: ${Number(teamScore) || 0}.`);
+      addSystemMessage(`Dodge Together cleared.Team score: ${Number(teamScore) || 0}.`);
     } else {
       addSystemMessage("Dodge Together round ended.");
     }
@@ -2354,7 +2402,7 @@ socket.on("playyard:round-ended", ({ game, reason, teamCleared, teamScore, winne
   const myAward = Array.isArray(xpAwarded) ? xpAwarded.find((entry) => entry.id === state.meId) : null;
   if (myAward) {
     const unlockCount = Array.isArray(myAward.newUnlocks) ? myAward.newUnlocks.length : 0;
-    const unlockSuffix = unlockCount > 0 ? ` • ${unlockCount} new unlock${unlockCount > 1 ? "s" : ""}` : "";
+    const unlockSuffix = unlockCount > 0 ? ` • ${unlockCount} new unlock${unlockCount > 1 ? "s" : ""} ` : "";
     addSystemMessage(`Mini Playyard: +${Number(myAward.gain) || 0} XP${unlockSuffix}.`);
   }
 });
@@ -2515,7 +2563,7 @@ socket.on("love-note-added", (note) => {
 socket.on("quick-reaction", ({ emoji, fromId, fromName }) => {
   launchReaction(String(emoji || "💖"));
   if (fromId !== state.meId) {
-    addSystemMessage(`${fromName} sent ${emoji}`);
+    addSystemMessage(`${fromName} sent ${emoji} `);
   }
 });
 
@@ -2915,8 +2963,8 @@ function updateMixerSlider(slider, label, audio, vibeLayer) {
   if (!slider || !label || !audio) return;
 
   const val = slider.value;
-  label.textContent = `${val}%`;
-  slider.style.backgroundSize = `${val}% 100%`;
+  label.textContent = `${val}% `;
+  slider.style.backgroundSize = `${val}% 100 % `;
 
   const volume = val / 100;
   audio.volume = volume;
@@ -2950,7 +2998,7 @@ function addToWallOfDone(taskText, name) {
   const card = document.createElement("div");
   card.className = "done-card";
   card.innerHTML = `
-    <div class="done-text">${taskText}</div>
+    < div class="done-text" > ${taskText}</div >
     <div style="font-size: 8px; color: var(--accent); margin-bottom: 2px;">BY ${name.toUpperCase()}</div>
     <div class="done-date">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
   `;
@@ -2968,7 +3016,7 @@ if (ui.focusTaskDoneBtn) {
 }
 
 socket.on("task-completed", ({ id, name, task }) => {
-  console.log(`[CLIENT] Received task-completed from ${name}: ${task}`);
+  console.log(`[CLIENT] Received task - completed from ${name}: ${task} `);
   addToWallOfDone(task, name);
   addSystemMessage(`${name} completed a task: "${task}"! 🎉`);
   if (id === state.meId) {
@@ -2993,11 +3041,11 @@ document.addEventListener("visibilitychange", () => {
 });
 
 socket.on("focus-nudge", ({ fromName, message }) => {
-  addSystemMessage(`🔔 ${fromName}: ${message}`);
+  addSystemMessage(`🔔 ${fromName}: ${message} `);
   // If browser supports notifications, show one?
   if (Notification.permission === "granted" && document.hidden) {
     new Notification("SyncNest Focus Nudge", {
-      body: `${fromName}: ${message}`,
+      body: `${fromName}: ${message} `,
       icon: "/favicon.ico"
     });
   }

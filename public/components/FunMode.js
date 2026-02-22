@@ -59,8 +59,7 @@ class FunMode {
     this.teleportFullscreenBtn = document.getElementById("btnTeleportFullscreen");
     this.cinematicEventBtn = document.getElementById("btnCinematicEvent");
     this.cinematicEventHeroBtn = document.getElementById("btnCinematicEventHero");
-    this.stopCinematicBtn = document.getElementById("btnStopCinematicEvent");
-    this.stopTeleportBtn = document.getElementById("btnStopTeleport");
+    this.teleportFullscreenBtn = document.getElementById("btnTeleportFullscreen");
     this.teleportAudioBtn = document.getElementById("btnTeleportAudio");
     this.sendHugBtn = document.getElementById("btnSendHug");
     this.thoughtModeBtn = document.getElementById("btnThoughtMode");
@@ -417,10 +416,14 @@ class FunMode {
         this.triggerCinematicEvent();
       }
     });
-    this.stopCinematicBtn?.addEventListener("click", () => this.requestStopCinematicEvent());
-    document.getElementById("btnTeleport")?.addEventListener("click", () => this.triggerTeleport());
+    document.getElementById("btnTeleport")?.addEventListener("click", () => {
+      if (this.teleportActive) {
+        this.requestStopTeleport();
+      } else {
+        this.triggerTeleport();
+      }
+    });
     this.teleportFullscreenBtn?.addEventListener("click", () => this.toggleTeleportFullscreen());
-    this.stopTeleportBtn?.addEventListener("click", () => this.requestStopTeleport());
     this.teleportAudioBtn?.addEventListener("click", () => this.toggleTeleportAudioMute());
     this.thoughtModeBtn?.addEventListener("click", () => this.openThoughtComposer());
     this.nightConfessionBtn?.addEventListener("click", () => this.toggleNightConfessionMode());
@@ -556,6 +559,34 @@ class FunMode {
     this.socket.emit("fun:start-game", { roomId: this.roomId, game });
   }
 
+  showGameInstructions(title, instructions, onStart) {
+    if (!this.gameArea) return;
+    this.gameArea.innerHTML = `
+      <div class="game-instruction-panel game-fade-in">
+        <h2>${title}</h2>
+        <p>${instructions}</p>
+        <button id="btnStartActualGame" class="btn-start-game">Start Game</button>
+      </div>
+    `;
+    const btn = document.getElementById("btnStartActualGame");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        const panel = this.gameArea.querySelector(".game-instruction-panel");
+        if (panel) {
+          panel.classList.remove("game-fade-in");
+          panel.classList.add("game-fade-out");
+          window.setTimeout(() => {
+            if (this.gameArea) this.gameArea.innerHTML = "";
+            onStart();
+          }, 300);
+        } else {
+          if (this.gameArea) this.gameArea.innerHTML = "";
+          onStart();
+        }
+      });
+    }
+  }
+
   loadGame(gameType) {
     const nextGame = String(gameType || "");
     if (this.activeGame === "watchparty") {
@@ -567,42 +598,63 @@ class FunMode {
     this.closeThoughtComposer();
     this.gameArea.innerHTML = "";
 
-    switch (this.activeGame) {
-      case "tapspeed":
-        this.initTapSpeed();
-        break;
-      case "quiz":
-        this.initQuiz();
-        break;
-      case "draw":
-        this.initDraw();
-        break;
-      case "song":
-        this.initGuessSong();
-        break;
-      case "thisthat":
-        this.initThisOrThat();
-        break;
-      case "memory":
-        this.initMemoryFlash();
-        break;
-      case "watchparty":
-        this.initFunWatchParty();
-        break;
-      case "miniplayyard":
-        this.initMiniPlayyard();
-        break;
-      case "airoast":
-        this.initAiRoast();
-        break;
-      case "aistory":
-        this.initAiStoryBuilder();
-        break;
-      case "aimood":
-        this.initAiMoodRemix();
-        break;
-      default:
-        this.gameArea.innerHTML = "<h2>Pick a game from the menu 🎮</h2>";
+    const runGameInit = () => {
+      switch (this.activeGame) {
+        case "tapspeed":
+          this.initTapSpeed();
+          break;
+        case "quiz":
+          this.initQuiz();
+          break;
+        case "draw":
+          this.initDraw();
+          break;
+        case "song":
+          this.initGuessSong();
+          break;
+        case "thisthat":
+          this.initThisOrThat();
+          break;
+        case "memory":
+          this.initMemoryFlash();
+          break;
+        case "watchparty":
+          this.initFunWatchParty();
+          break;
+        case "miniplayyard":
+          this.initMiniPlayyard();
+          break;
+        case "airoast":
+          this.initAiRoast();
+          break;
+        case "aistory":
+          this.initAiStoryBuilder();
+          break;
+        case "aimood":
+          this.initAiMoodRemix();
+          break;
+        default:
+          this.gameArea.innerHTML = "<h2>Pick a game from the menu 🎮</h2>";
+      }
+    };
+
+    const instructionsMap = {
+      "tapspeed": { title: "Tap Speed Race 🚀", desc: "Tap the button as fast as you can. You have 10 seconds. More taps = More points!" },
+      "quiz": { title: "Rapid Quiz ⚡", desc: "Read the question and pick the right answer quickly. +10 points per correct answer." },
+      "draw": { title: "Guess Draw 🎨", desc: "Draw something fun on the canvas. When you're done, claim your points!" },
+      "song": { title: "Guess The Song 🎵", desc: "Listen carefully (or guess the vibe) and pick the most likely lyric mood." },
+      "thisthat": { title: "This or That ⚖️", desc: "Pick your preference fast. No overthinking allowed!" },
+      "memory": { title: "Memory Flash 🎴", desc: "Memorize the sequence of emojis shown, then confirm you remember it." }
+    };
+
+    if (instructionsMap[this.activeGame]) {
+      this.showGameInstructions(
+        instructionsMap[this.activeGame].title,
+        instructionsMap[this.activeGame].desc,
+        runGameInit
+      );
+    } else {
+      runGameInit();
     }
 
     this.restoreTeleportLayer();
@@ -666,7 +718,7 @@ class FunMode {
     const render = () => {
       const q = questions[idx];
       this.gameArea.innerHTML = `
-        <div class="quiz-container">
+        <div class="quiz-container game-fade-in" style="animation-duration: 0.3s">
           <h3>Question ${idx + 1}/${questions.length}</h3>
           <p class="quiz-text">${q.q}</p>
           <div class="quiz-options">
@@ -675,16 +727,40 @@ class FunMode {
         </div>
       `;
 
-      document.querySelectorAll(".quiz-opt").forEach((btn) => {
+      const options = document.querySelectorAll(".quiz-opt");
+      options.forEach((btn) => {
         btn.addEventListener("click", () => {
+          // Prevent multiple clicks
+          options.forEach(b => b.disabled = true);
+
           const picked = Number(btn.getAttribute("data-idx"));
-          if (picked === q.c) this.addPoints(10);
-          idx += 1;
-          if (idx < questions.length) {
-            render();
+          if (picked === q.c) {
+            this.addPoints(10);
+            btn.style.backgroundColor = "rgba(40, 200, 100, 0.8)";
+            btn.style.borderColor = "rgba(40, 200, 100, 1)";
           } else {
-            this.gameArea.innerHTML = "<h2>Quiz done! +10 per correct answer.</h2>";
+            btn.style.backgroundColor = "rgba(220, 50, 70, 0.8)";
+            btn.style.borderColor = "rgba(220, 50, 70, 1)";
+            // Highlight the correct one too
+            options[q.c].style.backgroundColor = "rgba(40, 200, 100, 0.5)";
+            options[q.c].style.borderColor = "rgba(40, 200, 100, 0.8)";
           }
+
+          idx += 1;
+          window.setTimeout(() => {
+            const container = this.gameArea.querySelector(".quiz-container");
+            if (container) {
+              container.classList.remove("game-fade-in");
+              container.classList.add("game-fade-out");
+              window.setTimeout(() => {
+                if (idx < questions.length) {
+                  render();
+                } else {
+                  this.gameArea.innerHTML = "<h2 class='game-fade-in'>Quiz done! +10 per correct answer.</h2>";
+                }
+              }, 250);
+            }
+          }, 1000);
         });
       });
     };
@@ -1116,14 +1192,10 @@ class FunMode {
 
   updateCinematicCountdown() {
     if (!this.activeCinematicEvent) {
-      if (this.cinematicEventBtn) this.cinematicEventBtn.textContent = "🎥 Event";
-      if (this.cinematicEventHeroBtn) this.cinematicEventHeroBtn.textContent = "🎥 Cinematic Event";
+      if (this.cinematicEventBtn) this.cinematicEventBtn.innerHTML = "🎥 Event";
+      if (this.cinematicEventHeroBtn) this.cinematicEventHeroBtn.innerHTML = "🎥 Cinematic Event";
       this.cinematicEventBtn?.classList.remove("active");
       this.cinematicEventHeroBtn?.classList.remove("active");
-      if (this.stopCinematicBtn) {
-        this.stopCinematicBtn.disabled = true;
-        this.stopCinematicBtn.classList.add("inactive");
-      }
       this.queueToolbarScrollSync();
       return;
     }
@@ -1140,14 +1212,10 @@ class FunMode {
         track.style.setProperty("--event-progress", String(progress));
       }
     }
-    if (this.cinematicEventBtn) this.cinematicEventBtn.textContent = `🎥 Event ${remaining}s`;
-    if (this.cinematicEventHeroBtn) this.cinematicEventHeroBtn.textContent = `🎥 Live ${remaining}s`;
+    if (this.cinematicEventBtn) this.cinematicEventBtn.innerHTML = `🛑 Stop Event (${remaining}s)`;
+    if (this.cinematicEventHeroBtn) this.cinematicEventHeroBtn.innerHTML = `🛑 Stop Event (${remaining}s)`;
     this.cinematicEventBtn?.classList.add("active");
     this.cinematicEventHeroBtn?.classList.add("active");
-    if (this.stopCinematicBtn) {
-      this.stopCinematicBtn.disabled = false;
-      this.stopCinematicBtn.classList.remove("inactive");
-    }
     this.queueToolbarScrollSync();
   }
 
@@ -1333,9 +1401,15 @@ class FunMode {
 
   updateUniverseControlsUI() {
     const hasUniverse = Boolean(this.currentUniverse);
-    if (this.stopTeleportBtn) {
-      this.stopTeleportBtn.disabled = !hasUniverse;
-      this.stopTeleportBtn.classList.toggle("inactive", !hasUniverse);
+    const teleportBtn = document.getElementById("btnTeleport");
+    if (teleportBtn) {
+      if (hasUniverse) {
+        teleportBtn.innerHTML = "🧭 Stop Teleport";
+        teleportBtn.classList.add("active");
+      } else {
+        teleportBtn.innerHTML = "🌠 Teleport";
+        teleportBtn.classList.remove("active");
+      }
     }
     if (this.teleportAudioBtn) {
       this.teleportAudioBtn.disabled = !hasUniverse;
