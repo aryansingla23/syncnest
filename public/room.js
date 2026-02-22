@@ -143,6 +143,7 @@ const ui = {
   accountBadge: document.getElementById("accountBadge"),
   leaveRoomBtn: document.getElementById("leaveRoomBtn"),
   studyPanel: document.getElementById("studyPanel"),
+  studyGoBreakBtn: document.getElementById("studyGoBreakBtn"),
   funPanel: document.getElementById("funPanel"),
   playyardPanel: document.getElementById("playyardPanel"),
   playyardBackToFunBtn: document.getElementById("playyardBackToFunBtn"),
@@ -241,6 +242,7 @@ const ui = {
   breakToolbarFullscreenVideoBtn: document.getElementById("breakToolbarFullscreenVideoBtn"),
   breakToolbarSaveMomentBtn: document.getElementById("breakToolbarSaveMomentBtn"),
   breakToolbarEndBtn: document.getElementById("breakToolbarEndBtn"),
+  breakGoFunBtn: document.getElementById("breakGoFunBtn"),
   breakShowMomentsBtn: document.getElementById("breakShowMomentsBtn"),
   breakMomentsPanel: document.getElementById("breakMomentsPanel"),
   breakPromptPanel: document.getElementById("breakPromptPanel"),
@@ -1068,6 +1070,21 @@ async function togglePlayyardBattleFullscreen() {
   refreshPlayyardBattleFullscreenButton();
 }
 
+async function ensurePlayyardBattleFullscreen() {
+  const target = getPlayyardFullscreenTarget();
+  if (!target || typeof target.requestFullscreen !== "function") return;
+  if (document.fullscreenElement === target) return;
+  try {
+    if (document.fullscreenElement && document.fullscreenElement !== target) {
+      await document.exitFullscreen();
+    }
+    await target.requestFullscreen();
+  } catch {
+    // ignore browser fullscreen restrictions
+  }
+  refreshPlayyardBattleFullscreenButton();
+}
+
 function refreshPlayyardBattleFullscreenButton() {
   const btn = ui.playyardBattleFullscreenBtn;
   if (!btn) return;
@@ -1530,10 +1547,13 @@ function renderPlayyardState(playyard) {
 }
 
 ui.playyardBackToFunBtn?.addEventListener("click", () => activateMode("fun"));
+ui.studyGoBreakBtn?.addEventListener("click", () => activateMode("break"));
+ui.breakGoFunBtn?.addEventListener("click", () => activateMode("fun"));
 ui.playyardGameButtons?.forEach((btn) => {
   btn.addEventListener("click", () => setPlayyardSelectedGame(btn.dataset.playyardGame));
 });
 ui.playyardStartRoundBtn?.addEventListener("click", () => {
+  void ensurePlayyardBattleFullscreen();
   if (playyardRuntime.selectedGame === "chaos-arena") {
     ensureChaosArenaInstance()?.startMatch?.();
     return;

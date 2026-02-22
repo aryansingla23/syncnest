@@ -10,8 +10,9 @@
       this.unit = unit;
       this.node = document.createElement("div");
       this.node.className = "spb-sheep";
-      this.node.innerHTML = '<span class="spb-sheep-aura"></span><span class="spb-sheep-face">🐑</span>';
+      this.node.innerHTML = '<span class="spb-sheep-shadow"></span><span class="spb-sheep-aura"></span><span class="spb-sheep-face">🐑</span><span class="spb-sheep-size"></span>';
       this.faceEl = this.node.querySelector(".spb-sheep-face");
+      this.sizeEl = this.node.querySelector(".spb-sheep-size");
       this.node.style.setProperty("--spb-step-delay", `${(Math.random() * 0.6).toFixed(3)}s`);
       this.update(unit);
     }
@@ -26,19 +27,26 @@
       if (this.faceEl) {
         this.faceEl.textContent = FACE_BY_TYPE[type] || "🐑";
       }
+      if (this.sizeEl) {
+        this.sizeEl.textContent = type === "large" ? "L" : type === "medium" ? "M" : "S";
+      }
     }
 
     pulse() {
-      this.node.classList.remove("spb-sheep--pulse");
+      this.node.classList.remove("spb-sheep--pulse", "spb-sheep--spawned");
       void this.node.offsetWidth;
       this.node.classList.add("spb-sheep--pulse");
+      this.node.classList.add("spb-sheep--spawned");
     }
 
-    pushBounce(direction) {
+    pushBounce(direction, impactStrength = 0) {
       const cls = direction >= 0 ? "spb-sheep--impact-left" : "spb-sheep--impact-right";
-      this.node.classList.remove("spb-sheep--impact-left", "spb-sheep--impact-right");
+      this.node.classList.remove("spb-sheep--impact-left", "spb-sheep--impact-right", "spb-sheep--impact-heavy");
       void this.node.offsetWidth;
       this.node.classList.add(cls);
+      if (Number(impactStrength) >= 0.012) {
+        this.node.classList.add("spb-sheep--impact-heavy");
+      }
     }
 
     destroy() {

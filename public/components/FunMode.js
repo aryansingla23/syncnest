@@ -1693,7 +1693,7 @@ class FunMode {
 
   clearHugEffects() {
     if (!this.hugLayer) return;
-    this.hugLayer.classList.remove("active");
+    this.hugLayer.classList.remove("active", "immersive");
     this.hugLayer.innerHTML = "";
   }
 
@@ -1730,15 +1730,17 @@ class FunMode {
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
-    layer.classList.remove("active");
+    layer.classList.remove("active", "immersive");
     void layer.offsetWidth;
-    layer.classList.add("active");
+    layer.classList.add("active", "immersive");
     layer.innerHTML = `
+      <div class="hug-backdrop"></div>
+      <div class="hug-stage-glow"></div>
       <div class="hug-orbit"></div>
       <div class="hug-hearts">
-        <span>💖</span><span>✨</span><span>💞</span><span>🫶</span><span>💗</span>
+        <span>💖</span><span>✨</span><span>💞</span><span>🫶</span><span>💗</span><span>🌸</span><span>💫</span>
       </div>
-      <div class="hug-card">
+      <div class="hug-card hug-card--immersive">
         <div class="hug-avatar left"><span>${escapeHtml(left.charAt(0).toUpperCase())}</span><small>${escapeHtml(left)}</small></div>
         <div class="hug-wrap">
           <span class="hug-band left"></span>
@@ -1750,9 +1752,9 @@ class FunMode {
       <div class="hug-message">${escapeHtml(fromName)} sent a warm hug</div>
     `;
     window.setTimeout(() => {
-      layer.classList.remove("active");
+      layer.classList.remove("active", "immersive");
       layer.innerHTML = "";
-    }, 2200);
+    }, 2900);
   }
 
   openThoughtComposer() {

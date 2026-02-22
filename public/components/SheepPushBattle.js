@@ -17,6 +17,7 @@
       this.didRequestState = false;
       this.boundOnState = (payload) => this.handleState(payload?.battle || null);
       this.boundOnSpawnResult = (payload) => this.handleSpawnResult(payload || {});
+      this.boundOnSpawned = (payload) => this.handleSpawned(payload || {});
       this.boundOnStopped = () => this.handleStopped();
 
       this.mount();
@@ -111,7 +112,7 @@
         return lane;
       });
 
-      this.openButton.addEventListener("click", () => this.enter());
+      this.openButton.addEventListener("click", () => this.enter({ autoFullscreen: true }));
       this.fullscreenBtn?.addEventListener("click", () => this.toggleFullscreen());
       this.closeBtn.addEventListener("click", () => this.exit());
       this.boundOnFullscreenChange = () => this.refreshFullscreenButton();
@@ -126,6 +127,7 @@
       if (!this.socket) return;
       this.socket.on("sheep:state", this.boundOnState);
       this.socket.on("sheep:spawn-result", this.boundOnSpawnResult);
+      this.socket.on("sheep:spawned", this.boundOnSpawned);
       this.socket.on("sheep:match-stopped", this.boundOnStopped);
     }
 
@@ -166,7 +168,7 @@
       this.socket.emit("sheep:spawn", { laneIndex: laneIdx });
     }
 
-    enter() {
+    enter({ autoFullscreen = false } = {}) {
       if (!this.shell || !this.panel) return;
       this.active = true;
       this.openButton.classList.add("active");
@@ -174,6 +176,9 @@
       this.shell.classList.add("spb-active");
       this.socket.emit("sheep:request-state");
       this.statusEl.textContent = "Tap a lane to deploy your next random sheep.";
+      if (autoFullscreen) {
+        void this.ensureFullscreen();
+      }
       this.refreshFullscreenButton();
       window.dispatchEvent(new CustomEvent("playyard:sheep-battle-visibility", { detail: { active: true } }));
     }
@@ -221,6 +226,20 @@
       this.refreshFullscreenButton();
     }
 
+    async ensureFullscreen() {
+      if (!this.shell || typeof this.shell.requestFullscreen !== "function") return;
+      if (this.isFullscreenActive()) return;
+      try {
+        if (document.fullscreenElement && document.fullscreenElement !== this.shell) {
+          await document.exitFullscreen();
+        }
+        await this.shell.requestFullscreen();
+      } catch {
+        // ignore browser fullscreen restrictions
+      }
+      this.refreshFullscreenButton();
+    }
+
     handleStopped() {
       if (!this.active) return;
       this.statusEl.textContent = "Match stopped.";
@@ -238,6 +257,15 @@
       } else {
         this.statusEl.textContent = "Cannot spawn sheep right now.";
       }
+    }
+
+    handleSpawned(payload) {
+      if (!this.active) return;
+      const laneNum = Number(payload?.laneIndex);
+      const laneLabel = Number.isInteger(laneNum) ? `Lane ${laneNum + 1}` : "selected lane";
+      const sheepType = String(payload?.sheepType || "small");
+      const nextMeta = TYPE_META[sheepType] || TYPE_META.small;
+      this.statusEl.textContent = `${nextMeta.emoji} ${nextMeta.label} deployed in ${laneLabel}.`;
     }
 
     handleState(battle) {
@@ -322,6 +350,9 @@
       const nextMeta = TYPE_META[nextType] || TYPE_META.small;
       if (this.nextSheepTextEl) {
         this.nextSheepTextEl.textContent = `${nextMeta.emoji} ${nextMeta.label} (${nextMeta.cost})`;
+      }
+      if (status !== "ended") {
+        this.statusEl.textContent = `${youSideLabel} • Next ready: ${nextMeta.emoji} ${nextMeta.label}. Tap a lane to deploy.`;
       }
 
       const now = Date.now();

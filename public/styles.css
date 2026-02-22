@@ -2331,6 +2331,8 @@ body.playyard-room-active .room-blob-2 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .panel-title-group {
@@ -2463,6 +2465,25 @@ body.room-page:has(#breakPanel:not(.hidden)) .break-only {
 .pomo-status {
   font-weight: 700;
   color: var(--accent);
+}
+
+.room-jump-btn {
+  margin-left: auto;
+  border: 1px solid rgba(124, 193, 255, 0.42);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(28, 53, 89, 0.86), rgba(50, 90, 145, 0.9));
+  color: #e8f6ff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 0.48rem 0.9rem;
+  transition: transform 180ms ease, box-shadow 220ms ease, border-color 180ms ease;
+}
+
+.room-jump-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(161, 220, 255, 0.8);
+  box-shadow: 0 10px 22px rgba(62, 136, 224, 0.28);
 }
 
 /* Study Panel Details */
@@ -2881,11 +2902,14 @@ body.room-page:has(#breakPanel:not(.hidden)) .break-only {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .break-btns {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .break-btns button {
@@ -2907,6 +2931,12 @@ body.room-page:has(#breakPanel:not(.hidden)) .break-only {
   background: rgba(248, 81, 73, 0.1) !important;
   color: var(--danger) !important;
   border-color: rgba(248, 81, 73, 0.2) !important;
+}
+
+.btn-break-fun {
+  border-color: rgba(111, 196, 255, 0.5) !important;
+  background: linear-gradient(135deg, rgba(22, 56, 100, 0.9), rgba(43, 103, 180, 0.92)) !important;
+  color: #e9f5ff !important;
 }
 
 .break-scenes {
@@ -6011,7 +6041,22 @@ body:not(.pookie-mode) .extras-label {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.fun-hug-layer {
   z-index: 15;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.fun-hug-layer.active {
+  opacity: 1;
+}
+
+.fun-hug-layer.immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
 }
 
 .fun-thought-layer {
@@ -6023,7 +6068,31 @@ body:not(.pookie-mode) .extras-label {
 }
 
 .fun-hug-layer.active .hug-card {
-  animation: hug-card-rise 2.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  animation: hug-card-rise 2.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.hug-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 28% 30%, rgba(255, 112, 192, 0.38), transparent 48%),
+    radial-gradient(circle at 72% 68%, rgba(117, 156, 255, 0.34), transparent 52%),
+    linear-gradient(165deg, rgba(14, 22, 40, 0.86), rgba(34, 18, 52, 0.72));
+  animation: hug-backdrop-bloom 2.8s ease forwards;
+}
+
+.hug-stage-glow {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: min(88vw, 880px);
+  height: min(50vw, 420px);
+  transform: translate(-50%, -50%);
+  border-radius: 48%;
+  background: radial-gradient(circle, rgba(255, 164, 221, 0.28), rgba(119, 165, 255, 0.06) 65%, transparent 84%);
+  filter: blur(8px);
+  opacity: 0;
+  animation: hug-stage-pulse 2.8s ease forwards;
 }
 
 .hug-card {
@@ -6043,33 +6112,43 @@ body:not(.pookie-mode) .extras-label {
   opacity: 0;
 }
 
+.hug-card--immersive {
+  top: 54%;
+  border-radius: 26px;
+  padding: 1.05rem 1.35rem;
+  gap: 1.1rem;
+  border-color: rgba(255, 224, 247, 0.5);
+  background: linear-gradient(135deg, rgba(255, 210, 235, 0.36), rgba(171, 188, 255, 0.28));
+  box-shadow: 0 24px 54px rgba(14, 10, 30, 0.45), 0 0 56px rgba(255, 126, 206, 0.28);
+}
+
 .hug-orbit {
   position: absolute;
   left: 50%;
-  top: 56%;
-  width: 220px;
-  height: 220px;
+  top: 54%;
+  width: min(64vw, 360px);
+  height: min(64vw, 360px);
   transform: translate(-50%, -50%) scale(0.65);
   border: 2px dashed rgba(255, 169, 210, 0.65);
   border-radius: 50%;
   opacity: 0;
-  animation: hug-orbit-spin 2.2s ease-out forwards;
+  animation: hug-orbit-spin 2.8s ease-out forwards;
 }
 
 .hug-hearts {
   position: absolute;
-  inset: 18% 12% auto 12%;
+  inset: 15% 10% auto 10%;
   display: flex;
   justify-content: space-between;
   pointer-events: none;
   opacity: 0;
-  animation: hug-hearts-rise 1.9s ease-out forwards;
+  animation: hug-hearts-rise 2.6s ease-out forwards;
 }
 
 .hug-hearts span {
-  font-size: 1rem;
+  font-size: 1.08rem;
   filter: drop-shadow(0 0 8px rgba(255, 95, 184, 0.45));
-  animation: hug-heart-float 1.8s ease-out forwards;
+  animation: hug-heart-float 2.4s ease-out forwards;
 }
 
 .hug-hearts span:nth-child(2) { animation-delay: 0.06s; }
@@ -6116,8 +6195,8 @@ body:not(.pookie-mode) .extras-label {
 }
 
 .hug-avatar span {
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -6127,7 +6206,7 @@ body:not(.pookie-mode) .extras-label {
 }
 
 .hug-avatar small {
-  font-size: 0.68rem;
+  font-size: 0.73rem;
   font-weight: 800;
   color: #fff;
 }
@@ -6140,15 +6219,15 @@ body:not(.pookie-mode) .extras-label {
 .hug-message {
   position: absolute;
   left: 50%;
-  top: 76%;
+  top: 74%;
   transform: translateX(-50%);
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   color: #fff2fa;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-shadow: 0 0 12px rgba(255, 106, 196, 0.55);
   opacity: 0;
-  animation: hug-message-fade 2s ease-out forwards;
+  animation: hug-message-fade 2.8s ease-out forwards;
 }
 
 .thought-compose-card {
@@ -6332,6 +6411,34 @@ body:not(.pookie-mode) .extras-label {
   100% {
     opacity: 0;
     transform: translate(-50%, -56%) scale(0.98);
+  }
+}
+
+@keyframes hug-backdrop-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes hug-stage-pulse {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  26% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
   }
 }
 

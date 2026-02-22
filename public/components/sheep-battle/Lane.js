@@ -23,6 +23,7 @@
       this.hitbox = this.node.querySelector(".spb-lane-hitbox");
       this.track = this.node.querySelector(".spb-lane-track");
       this.captureLabel = this.node.querySelector(".spb-lane-capture");
+      this.spawnFlashTimer = 0;
 
       this.hitbox?.addEventListener("click", () => {
         this.onSelect?.(this.index);
@@ -44,7 +45,10 @@
       } else if (capturedBy === "right") {
         this.captureLabel.textContent = "Captured by Right";
       } else {
-        this.captureLabel.textContent = "Contested";
+        const pushDirection = Number(lane.pushDirection || 0);
+        if (pushDirection > 0) this.captureLabel.textContent = "Left pushing";
+        else if (pushDirection < 0) this.captureLabel.textContent = "Right pushing";
+        else this.captureLabel.textContent = "Contested";
       }
 
       const impactAt = Number(lane.impactAt || 0);
@@ -55,7 +59,7 @@
         const pushDirection = Number(lane.pushDirection || 0);
         const impactClass = pushDirection >= 0 ? "spb-lane--impact-left" : "spb-lane--impact-right";
         this.node.classList.add(impactClass);
-        this.sheepNodes.forEach((view) => view.pushBounce(pushDirection));
+        this.sheepNodes.forEach((view) => view.pushBounce(pushDirection, Number(lane.pushStrength || 0)));
       }
 
       const units = Array.isArray(lane.sheep) ? lane.sheep : [];
@@ -71,6 +75,7 @@
           this.sheepNodes.set(id, view);
           this.track.appendChild(view.node);
           view.pulse();
+          this.flashSpawn(unit.side);
         }
         view.update(unit);
       });
@@ -84,9 +89,25 @@
     }
 
     destroy() {
+      if (this.spawnFlashTimer) {
+        window.clearTimeout(this.spawnFlashTimer);
+        this.spawnFlashTimer = 0;
+      }
       this.sheepNodes.forEach((view) => view.destroy());
       this.sheepNodes.clear();
       this.node.remove();
+    }
+
+    flashSpawn(side) {
+      const safeSide = side === "right" ? "right" : "left";
+      const cls = safeSide === "right" ? "spb-lane--spawned-right" : "spb-lane--spawned-left";
+      this.node.classList.remove("spb-lane--spawned-left", "spb-lane--spawned-right");
+      void this.node.offsetWidth;
+      this.node.classList.add(cls);
+      if (this.spawnFlashTimer) window.clearTimeout(this.spawnFlashTimer);
+      this.spawnFlashTimer = window.setTimeout(() => {
+        this.node.classList.remove(cls);
+      }, 320);
     }
   }
 

@@ -321,3 +321,21 @@ TODO / next pass:
   - `public/styles.css`: added `.btn-wellness.active` style for clear on/off feedback.
 - Validation:
   - Syntax check passed for `public/components/RelaxMode.js`.
+
+## 2026-02-22 (room flow + hug cinematic + sheep battle improvements)
+- Added explicit room progression buttons:
+  - Study -> Break (`#studyGoBreakBtn`)
+  - Break -> Fun (`#breakGoFunBtn`)
+  - Existing Fun -> Mini Playyard and Mini Playyard -> Fun kept intact.
+- Added room-mode handlers in `public/room.js` for the new Study/Break transitions.
+- Added auto fullscreen request when starting Playyard rounds, plus Sheep Push Battle opens with fullscreen attempt from user click.
+- Upgraded Fun Room hug to immersive full-screen cinematic overlay (new backdrop/glow/expanded animation timing).
+- Improved Sheep Push Battle visuals:
+  - bigger sheep, clearer contrast, size badges, stronger spawn flash and impact feedback.
+  - lane pressure labels now show Contested / Left pushing / Right pushing.
+- Improved Sheep Push Battle mechanics:
+  - slower sheep movement for readability.
+  - stronger force resolution and collision separation to feel more head-on tug-of-war.
+  - surfaced `pushStrength` for visual intensity.
+- Smoke tested with Playwright scripts (local) and captured screenshots under `output/qa/`.
+- `output/qa/report.json` shows no console/page errors in smoke flow.

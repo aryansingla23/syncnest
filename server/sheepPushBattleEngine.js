@@ -1,7 +1,7 @@
 const SHEEP_TYPES = {
-  small: { cost: 20, force: 1.25, speed: 0.16, size: 0.048 },
-  medium: { cost: 32, force: 2.1, speed: 0.12, size: 0.058 },
-  large: { cost: 46, force: 3.35, speed: 0.088, size: 0.072 }
+  small: { cost: 20, force: 1.35, speed: 0.11, size: 0.06 },
+  medium: { cost: 32, force: 2.25, speed: 0.082, size: 0.074 },
+  large: { cost: 46, force: 3.9, speed: 0.058, size: 0.09 }
 };
 const SHEEP_TYPE_KEYS = Object.keys(SHEEP_TYPES);
 
@@ -9,7 +9,7 @@ const LANE_COUNT = 3;
 const MATCH_DURATION_MS = 90_000;
 const ENERGY_MAX = 100;
 const ENERGY_REGEN_PER_SEC = 9;
-const TICK_MS = 80;
+const TICK_MS = 70;
 
 function clamp(value, min, max) {
   const numeric = Number(value);
@@ -24,6 +24,7 @@ function makeLane(index) {
     capturedBy: null,
     capturedAt: 0,
     pushDirection: 0,
+    pushStrength: 0,
     impactAt: 0
   };
 }
@@ -179,45 +180,61 @@ function createEngine({ io, rooms }) {
     const leftSheep = lane.sheep.filter((unit) => unit.side === "left");
     const rightSheep = lane.sheep.filter((unit) => unit.side === "right");
 
-    const collidingLeft = [];
-    const collidingRight = [];
+    const collidingPairs = [];
+    const collidingLeftSet = new Set();
+    const collidingRightSet = new Set();
 
     leftSheep.forEach((leftUnit) => {
       rightSheep.forEach((rightUnit) => {
-        const collisionDistance = (Number(leftUnit.size) + Number(rightUnit.size)) * 0.88;
+        const collisionDistance = (Number(leftUnit.size) + Number(rightUnit.size)) * 0.92;
         if (Math.abs(Number(leftUnit.x) - Number(rightUnit.x)) <= collisionDistance) {
-          collidingLeft.push(leftUnit);
-          collidingRight.push(rightUnit);
+          collidingPairs.push({ leftUnit, rightUnit, collisionDistance });
+          collidingLeftSet.add(leftUnit);
+          collidingRightSet.add(rightUnit);
         }
       });
     });
 
-    if (collidingLeft.length === 0 || collidingRight.length === 0) {
+    if (collidingPairs.length === 0) {
       lane.pushDirection = 0;
+      lane.pushStrength = 0;
       return;
     }
 
+    collidingPairs.forEach(({ leftUnit, rightUnit, collisionDistance }) => {
+      const leftX = Number(leftUnit.x);
+      const rightX = Number(rightUnit.x);
+      const middle = (leftX + rightX) / 2;
+      const halfGap = collisionDistance * 0.52;
+      leftUnit.x = clamp(Math.min(leftX, middle - halfGap), -0.2, 1.2);
+      rightUnit.x = clamp(Math.max(rightX, middle + halfGap), -0.2, 1.2);
+    });
+
+    const collidingLeft = Array.from(collidingLeftSet);
+    const collidingRight = Array.from(collidingRightSet);
     const leftForce = collidingLeft.reduce((sum, unit) => sum + Number(unit.force || 0), 0);
     const rightForce = collidingRight.reduce((sum, unit) => sum + Number(unit.force || 0), 0);
     const diff = leftForce - rightForce;
 
-    if (Math.abs(diff) <= 0.01) {
+    if (Math.abs(diff) <= 0.02) {
       lane.pushDirection = 0;
+      lane.pushStrength = 0.002;
       lane.impactAt = now;
       return;
     }
 
     const direction = diff > 0 ? 1 : -1;
-    const pushStrength = Math.min(0.011, Math.abs(diff) * 0.0018);
+    const pushStrength = Math.min(0.028, 0.0048 + Math.abs(diff) * 0.0032);
 
     collidingLeft.forEach((unit) => {
-      unit.x = clamp(Number(unit.x) + pushStrength * direction * 0.34, -0.2, 1.2);
+      unit.x = clamp(Number(unit.x) + pushStrength * direction * 0.45, -0.2, 1.2);
     });
     collidingRight.forEach((unit) => {
-      unit.x = clamp(Number(unit.x) + pushStrength * direction * 0.68, -0.2, 1.2);
+      unit.x = clamp(Number(unit.x) + pushStrength * direction * 1.02, -0.2, 1.2);
     });
 
     lane.pushDirection = direction;
+    lane.pushStrength = pushStrength;
     lane.impactAt = now;
   }
 
@@ -258,6 +275,7 @@ function createEngine({ io, rooms }) {
         lane.capturedBy = leftReached ? "left" : "right";
         lane.capturedAt = now;
         lane.sheep = [];
+        lane.pushStrength = 0;
         lane.impactAt = now;
       }
     });
@@ -313,6 +331,7 @@ function createEngine({ io, rooms }) {
         capturedBy: lane.capturedBy,
         capturedAt: Number(lane.capturedAt) || 0,
         pushDirection: Number(lane.pushDirection) || 0,
+        pushStrength: Number(lane.pushStrength) || 0,
         impactAt: Number(lane.impactAt) || 0,
         sheep: lane.sheep.map((unit) => ({
           id: String(unit.id || ""),
@@ -401,7 +420,7 @@ function createEngine({ io, rooms }) {
       force: config.force,
       speed: config.speed,
       size: config.size,
-      x: side === "left" ? 0.04 : 0.96
+      x: side === "left" ? 0.08 : 0.92
     });
     lane.impactAt = Date.now();
 
