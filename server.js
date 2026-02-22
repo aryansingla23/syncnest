@@ -18,8 +18,34 @@ const server = http.createServer(app);
 app.use(express.json({ limit: "256kb" }));
 const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
+const allowedOrigins = new Set(rawAllowedOrigins);
+
+function resolveAllowedOrigin(origin) {
+  const cleanOrigin = String(origin || "").trim().replace(/\/+$/, "");
+  if (!cleanOrigin) return "";
+  if (allowedOrigins.size === 0 || allowedOrigins.has(cleanOrigin)) {
+    return cleanOrigin;
+  }
+  return "";
+}
+
+app.use((req, res, next) => {
+  const origin = resolveAllowedOrigin(req.headers.origin);
+  if (origin) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+  }
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Syncnest-Token");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
+
 const io = new Server(server, {
   cors: rawAllowedOrigins.length
     ? {

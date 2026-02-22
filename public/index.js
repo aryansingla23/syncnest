@@ -43,6 +43,27 @@ let accountMode = 'signup';
 let authToken = '';
 let authUser = null;
 let authBusy = false;
+function normalizeBackendUrl(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed.replace(/\/+$/, '');
+  return `https://${trimmed}`.replace(/\/+$/, '');
+}
+
+const landingParams = new URLSearchParams(window.location.search);
+const landingQueryBackend = normalizeBackendUrl(landingParams.get('backend'));
+const configuredApiBase = normalizeBackendUrl(window.SYNCNEST_API_BASE || window.PULSE_BACKEND_URL);
+const apiBaseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? window.location.origin
+  : (landingQueryBackend || configuredApiBase || window.location.origin);
+
+function resolveApiUrl(path) {
+  const cleanPath = String(path || '').trim();
+  if (!cleanPath) return apiBaseUrl;
+  if (/^https?:\/\//i.test(cleanPath)) return cleanPath;
+  const normalized = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+  return `${apiBaseUrl}${normalized}`;
+}
 
 function readStorage(primaryKey, legacyKey = '') {
   return localStorage.getItem(primaryKey) ?? (legacyKey ? localStorage.getItem(legacyKey) : null);
@@ -179,18 +200,36 @@ async function callApi(path, options = {}) {
     headers.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(path, {
-    method,
-    headers,
-    body,
-    keepalive: Boolean(options.keepalive)
-  });
+  const canFallbackToLocalAuth = Boolean(
+    window.SyncNestLocalAuth
+    && typeof window.SyncNestLocalAuth.shouldHandle === 'function'
+    && window.SyncNestLocalAuth.shouldHandle(path)
+  );
+
+  let response = null;
+  try {
+    response = await fetch(resolveApiUrl(path), {
+      method,
+      headers,
+      body,
+      keepalive: Boolean(options.keepalive)
+    });
+  } catch (error) {
+    if (canFallbackToLocalAuth) {
+      return window.SyncNestLocalAuth.handle(path, { method, headers, body: options.body });
+    }
+    throw error;
+  }
 
   let payload = null;
   try {
     payload = await response.json();
   } catch {
     payload = null;
+  }
+
+  if ((!response.ok || !payload?.ok) && canFallbackToLocalAuth && response.status === 404) {
+    return window.SyncNestLocalAuth.handle(path, { method, headers, body: options.body });
   }
 
   if (!response.ok || !payload?.ok) {

@@ -726,8 +726,12 @@
     </div>
   </div>
 
-  <script>window.PULSE_BACKEND_URL = "";</script>
+  <script>
+    window.PULSE_BACKEND_URL = "https://syncnest-realtime-api-production.up.railway.app";
+    window.SYNCNEST_API_BASE = "https://syncnest-realtime-api-production.up.railway.app";
+  </script>
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
+  <script src="/localAuth.js" defer></script>
   <script src="/components/Prompt.js" defer></script>
   <script src="/components/DrawingBoard.js" defer></script>
   <script src="/components/RelaxMode.js" defer></script>

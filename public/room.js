@@ -67,6 +67,15 @@ const configuredBackend = normalizeBackendUrl(window.PULSE_BACKEND_URL);
 const socketServerUrl = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
   ? window.location.origin
   : (queryBackend || configuredBackend || window.location.origin);
+const apiBaseUrl = socketServerUrl;
+
+function resolveApiUrl(path) {
+  const cleanPath = String(path || "").trim();
+  if (!cleanPath) return apiBaseUrl;
+  if (/^https?:\/\//i.test(cleanPath)) return cleanPath;
+  const normalized = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
+  return `${apiBaseUrl}${normalized}`;
+}
 
 console.log("Connecting to Socket.io at:", socketServerUrl);
 const socket = io(socketServerUrl, {
@@ -289,12 +298,29 @@ async function accountApi(path, { method = "GET", body, keepalive = false } = {}
     headers["Content-Type"] = "application/json";
     init.body = JSON.stringify(body);
   }
-  const response = await fetch(path, init);
+  const canFallbackToLocalAuth = Boolean(
+    window.SyncNestLocalAuth
+    && typeof window.SyncNestLocalAuth.shouldHandle === "function"
+    && window.SyncNestLocalAuth.shouldHandle(path)
+  );
+
+  let response = null;
+  try {
+    response = await fetch(resolveApiUrl(path), init);
+  } catch (error) {
+    if (canFallbackToLocalAuth) {
+      return window.SyncNestLocalAuth.handle(path, { method, headers, body });
+    }
+    throw error;
+  }
   let payload = null;
   try {
     payload = await response.json();
   } catch {
     payload = null;
+  }
+  if ((!response.ok || !payload?.ok) && canFallbackToLocalAuth && response.status === 404) {
+    return window.SyncNestLocalAuth.handle(path, { method, headers, body });
   }
   if (!response.ok || !payload?.ok) {
     throw new Error(payload?.error || `Request failed (${response.status}).`);
