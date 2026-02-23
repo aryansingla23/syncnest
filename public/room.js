@@ -1828,13 +1828,13 @@ function addSystemMessage(text) {
 }
 
 async function copyInviteLinkToClipboard() {
-  const inviteParams = new URLSearchParams({ name: "" });
+  const inviteUrl = new URL(`/room/${encodeURIComponent(roomId)}`, window.location.origin);
+  inviteUrl.searchParams.set("name", "");
   if (queryBackend) {
-    inviteParams.set("backend", queryBackend);
+    inviteUrl.searchParams.set("backend", queryBackend);
   }
-  const inviteUrl = `${window.location.origin} /room/${encodeURIComponent(roomId)}?${inviteParams.toString()} `;
   try {
-    await navigator.clipboard.writeText(inviteUrl);
+    await navigator.clipboard.writeText(inviteUrl.toString());
     addSystemMessage("Invite link copied.");
   } catch {
     addSystemMessage("Clipboard blocked. Copy the URL from your address bar.");
