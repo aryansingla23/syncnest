@@ -391,12 +391,15 @@ class FunMode {
       this.closeAllSubmenus();
     };
     const openMiniPlayyard = () => this.setMode("playyard");
+    const openDateLounge = () => this.setMode("date");
 
     document.getElementById("btnOpenGames")?.addEventListener("click", () => this.toggleSubmenu("funGamesSubmenu"));
     document.getElementById("btnOpenWatchParty")?.addEventListener("click", openWatchParty);
     document.getElementById("btnOpenWatchPartyHero")?.addEventListener("click", openWatchParty);
     document.getElementById("btnOpenMiniPlayyard")?.addEventListener("click", openMiniPlayyard);
     document.getElementById("btnOpenMiniPlayyardHero")?.addEventListener("click", openMiniPlayyard);
+    document.getElementById("btnOpenDateLounge")?.addEventListener("click", openDateLounge);
+    document.getElementById("btnOpenDateLoungeHero")?.addEventListener("click", openDateLounge);
     document.getElementById("btnOpenReactions")?.addEventListener("click", () => this.toggleSubmenu("funReactionsSubmenu"));
     document.getElementById("btnOpenAiLab")?.addEventListener("click", () => this.toggleSubmenu("funAiSubmenu"));
     document.getElementById("btnOpenChallenges")?.addEventListener("click", () => this.startRandomChallenge());

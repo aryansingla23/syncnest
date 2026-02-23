@@ -210,6 +210,7 @@
               <button id="breakToolbarFullscreenBtn" title="Toggle fullscreen for Break Room">Fullscreen</button>
               <button id="breakToolbarEndBtn" class="btn-end-break" title="Return to Study Room immediately">End Break
                 Early</button>
+              <button id="breakGoDateBtn" class="btn-break-date" title="Switch to Love Lounge">💖 Love Lounge</button>
               <button id="breakGoFunBtn" class="btn-break-fun" title="Switch to Fun Room">🎮 Go to Fun Room</button>
             </div>
 
@@ -270,6 +271,69 @@
         </div>
       </section>
 
+      <!-- Love Lounge Panel -->
+      <section id="datePanel" class="main-panel date-lounge-panel hidden">
+        <div class="panel-header date-panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon">💖</span>
+            <h2>Love Lounge</h2>
+          </div>
+          <div class="date-head-actions">
+            <button id="dateGoBreakBtn" class="room-jump-btn" title="Switch to Break Room">☕ Break Room</button>
+            <button id="dateGoFunBtn" class="room-jump-btn" title="Switch to Fun Room">🎮 Fun Room</button>
+          </div>
+        </div>
+
+        <div class="date-lounge-grid">
+          <section class="date-hero-card" id="dateHeroCard" data-scene="aurora">
+            <div class="date-hero-glow"></div>
+            <div class="date-hero-content">
+              <p class="date-kicker">Private Duo Space</p>
+              <h3 id="dateSceneTitle">Aurora Night</h3>
+              <p id="datePulseFeed">No pulse yet. Send your first one.</p>
+            </div>
+
+            <div class="date-scene-row">
+              <button class="date-scene-btn active" data-scene="aurora">🌌 Aurora</button>
+              <button class="date-scene-btn" data-scene="moonlight">🌙 Moonlight</button>
+              <button class="date-scene-btn" data-scene="candlelight">🕯️ Candlelight</button>
+            </div>
+
+            <div class="date-pulse-row">
+              <button class="date-pulse-btn" data-emoji="💖" data-text="You are my safe place.">💖 Safe Place</button>
+              <button class="date-pulse-btn" data-emoji="😘" data-text="Miss your face right now.">😘 Miss You</button>
+              <button class="date-pulse-btn" data-emoji="🤗" data-text="Virtual hug loading...">🤗 Hug Ping</button>
+              <button class="date-pulse-btn" data-emoji="✨" data-text="Tonight is ours.">✨ Our Night</button>
+            </div>
+          </section>
+
+          <section class="date-side-stack">
+            <article class="date-card">
+              <div class="date-card-head">
+                <h4>Our Song Tonight</h4>
+                <button id="dateSongOpenBtn" class="date-open-btn" title="Open song link">Open</button>
+              </div>
+              <div class="date-song-row">
+                <input id="dateSongInput" type="url" placeholder="Paste Spotify/YouTube/any song link..." />
+                <button id="dateSongSaveBtn" class="date-save-btn">Save</button>
+              </div>
+            </article>
+
+            <article class="date-card">
+              <div class="date-card-head">
+                <h4>Promise Wall</h4>
+                <span class="date-mini-label">Shared</span>
+              </div>
+              <div class="date-promise-row">
+                <input id="datePromiseInput" type="text" maxlength="140" placeholder="Write one sweet promise..." />
+                <button id="datePromiseAddBtn" class="date-save-btn">Add</button>
+              </div>
+              <ul id="datePromiseList" class="date-promise-list"></ul>
+            </article>
+          </section>
+        </div>
+      </section>
+
       <!-- Fun Room Panel -->
       <section id="funPanel" class="main-panel fun-room-panel hidden">
         <div class="fun-room-layout">
@@ -306,6 +370,7 @@
                 <p>Pick a challenge or game below!</p>
                 <button id="btnSurpriseUs" class="lp-btn-primary btn-premium">✨ Surprise Us!</button>
                 <button id="btnOpenWatchPartyHero" class="toolbar-icon-btn btn-watch-hero">🎬 Sync Play</button>
+                <button id="btnOpenDateLoungeHero" class="toolbar-icon-btn btn-date-hero">💖 Love Lounge</button>
                 <button id="btnOpenMiniPlayyardHero" class="toolbar-icon-btn btn-mini-playyard-hero">🧩 Mini
                   Playyard</button>
                 <button id="btnCinematicEventHero" class="toolbar-icon-btn btn-cinematic-hero">🎥 Cinematic
@@ -376,6 +441,8 @@
                       <span>Reactions</span></button>
                     <button id="btnOpenAiLab" class="toolbar-icon-btn" title="AI-powered Fun Room features">🤖 <span>AI
                         Lab</span></button>
+                    <button id="btnOpenDateLounge" class="toolbar-icon-btn" title="Switch to Love Lounge">💖 <span>Love
+                        Lounge</span></button>
                     <button id="btnSendHug" class="toolbar-icon-btn hug-btn" title="Hold to send a hug">🫶 <span>Send
                         Hug</span></button>
                     <button id="btnThoughtMode" class="toolbar-icon-btn thought-btn" title="Send a floating thought">💭
@@ -694,6 +761,11 @@
           </p>
         </div>
         <div class="guide-section">
+          <h4>💖 Love Lounge</h4>
+          <p>Use your private duo vibe with <strong>pulse buttons</strong>, a shared <strong>Promise Wall</strong>, and
+            your <strong>song of the night</strong>.</p>
+        </div>
+        <div class="guide-section">
           <h4>📸 Moment Wall</h4>
           <p>Save special break moments to your session scrapbook using the camera icon.</p>
         </div>
@@ -732,6 +804,12 @@
           <span class="mode-icon">🧩</span>
           <h3>Mini Playyard</h3>
           <p>3D arcade room</p>
+        </button>
+        <button class="mode-card" data-mode="date">
+          <div class="mode-glow glow-date"></div>
+          <span class="mode-icon">💖</span>
+          <h3>Love Lounge</h3>
+          <p>Private couple mode</p>
         </button>
       </div>
     </div>

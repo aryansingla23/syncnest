@@ -143,6 +143,7 @@ const ui = {
   accountBadge: document.getElementById("accountBadge"),
   leaveRoomBtn: document.getElementById("leaveRoomBtn"),
   studyPanel: document.getElementById("studyPanel"),
+  datePanel: document.getElementById("datePanel"),
   studyGoBreakBtn: document.getElementById("studyGoBreakBtn"),
   funPanel: document.getElementById("funPanel"),
   playyardPanel: document.getElementById("playyardPanel"),
@@ -242,6 +243,7 @@ const ui = {
   breakToolbarFullscreenVideoBtn: document.getElementById("breakToolbarFullscreenVideoBtn"),
   breakToolbarSaveMomentBtn: document.getElementById("breakToolbarSaveMomentBtn"),
   breakToolbarEndBtn: document.getElementById("breakToolbarEndBtn"),
+  breakGoDateBtn: document.getElementById("breakGoDateBtn"),
   breakGoFunBtn: document.getElementById("breakGoFunBtn"),
   breakShowMomentsBtn: document.getElementById("breakShowMomentsBtn"),
   breakMomentsPanel: document.getElementById("breakMomentsPanel"),
@@ -252,6 +254,19 @@ const ui = {
   breathingText: document.getElementById("breathingText"),
   burstContainer: document.getElementById("burstContainer"),
   btnToggleWellness: document.getElementById("btnToggleWellness"),
+  dateGoBreakBtn: document.getElementById("dateGoBreakBtn"),
+  dateGoFunBtn: document.getElementById("dateGoFunBtn"),
+  dateHeroCard: document.getElementById("dateHeroCard"),
+  dateSceneTitle: document.getElementById("dateSceneTitle"),
+  datePulseFeed: document.getElementById("datePulseFeed"),
+  dateSceneButtons: document.querySelectorAll(".date-scene-btn"),
+  datePulseButtons: document.querySelectorAll(".date-pulse-btn"),
+  dateSongInput: document.getElementById("dateSongInput"),
+  dateSongSaveBtn: document.getElementById("dateSongSaveBtn"),
+  dateSongOpenBtn: document.getElementById("dateSongOpenBtn"),
+  datePromiseInput: document.getElementById("datePromiseInput"),
+  datePromiseAddBtn: document.getElementById("datePromiseAddBtn"),
+  datePromiseList: document.getElementById("datePromiseList"),
   helpBtn: document.getElementById("helpBtn"),
   helpOverlay: document.getElementById("helpOverlay"),
   ourSongCard: document.getElementById("ourSongCard"),
@@ -496,6 +511,12 @@ const state = {
     currentPrompt: localDateMode?.currentPrompt || "Tap \"New question card\" and go deep.",
     notes: localDateMode?.notes || []
   },
+  dateLounge: {
+    scene: "aurora",
+    songLink: "",
+    promises: [],
+    pulse: null
+  },
   breakRoom: {
     duration: 10 * 60,
     endsAt: null,
@@ -531,6 +552,91 @@ if (ui.moodSelect && localDateMode?.myMood) {
   }
 }
 renderDateNight();
+
+const DATE_SCENE_META = {
+  aurora: { title: "Aurora Night" },
+  moonlight: { title: "Moonlight Calm" },
+  candlelight: { title: "Candlelight Glow" }
+};
+
+function normalizeDateScene(scene) {
+  const clean = String(scene || "").trim().toLowerCase();
+  return DATE_SCENE_META[clean] ? clean : "aurora";
+}
+
+function renderDatePromiseList() {
+  if (!ui.datePromiseList) return;
+  ui.datePromiseList.innerHTML = "";
+  const promises = Array.isArray(state.dateLounge.promises) ? state.dateLounge.promises : [];
+  if (promises.length === 0) {
+    const li = document.createElement("li");
+    li.className = "date-promise-empty";
+    li.textContent = "No promises yet. Add your first one.";
+    ui.datePromiseList.appendChild(li);
+    return;
+  }
+  promises.slice().reverse().forEach((entry) => {
+    const li = document.createElement("li");
+    const sender = String(entry?.senderName || "You").trim() || "You";
+    const text = String(entry?.text || "").trim();
+    li.innerHTML = `<span>${sender}</span><p></p>`;
+    li.querySelector("p").textContent = text || "Promise";
+    ui.datePromiseList.appendChild(li);
+  });
+}
+
+function applyDateScene(scene, emit = false) {
+  const safeScene = normalizeDateScene(scene);
+  state.dateLounge.scene = safeScene;
+  if (ui.dateHeroCard) ui.dateHeroCard.setAttribute("data-scene", safeScene);
+  if (ui.dateSceneTitle) ui.dateSceneTitle.textContent = DATE_SCENE_META[safeScene].title;
+  ui.dateSceneButtons?.forEach((btn) => {
+    btn.classList.toggle("active", String(btn.dataset.scene || "") === safeScene);
+  });
+  if (emit) {
+    socket.emit("lounge:set-scene", { scene: safeScene });
+  }
+}
+
+function setDateSongLink(url, emit = false) {
+  const clean = normalizeLink(url);
+  state.dateLounge.songLink = clean;
+  if (ui.dateSongInput) ui.dateSongInput.value = clean;
+  if (ui.dateSongOpenBtn) ui.dateSongOpenBtn.disabled = !clean;
+  if (emit) {
+    socket.emit("lounge:set-song", { url: clean });
+  }
+}
+
+function renderDatePulse(pulse) {
+  if (!ui.datePulseFeed) return;
+  if (!pulse || typeof pulse !== "object") {
+    ui.datePulseFeed.textContent = "No pulse yet. Send your first one.";
+    return;
+  }
+  const emoji = String(pulse.emoji || "💖").trim() || "💖";
+  const text = String(pulse.text || "Thinking of you").trim() || "Thinking of you";
+  const fromName = String(pulse.fromName || "Your person").trim() || "Your person";
+  ui.datePulseFeed.textContent = `${emoji} ${fromName}: ${text}`;
+}
+
+function syncDateLoungeState(payload = {}) {
+  const safePayload = payload && typeof payload === "object" ? payload : {};
+  state.dateLounge.scene = normalizeDateScene(safePayload.scene || state.dateLounge.scene);
+  state.dateLounge.songLink = normalizeLink(safePayload.songLink || state.dateLounge.songLink || "");
+  state.dateLounge.promises = Array.isArray(safePayload.promises)
+    ? safePayload.promises.slice(-24)
+    : (Array.isArray(state.dateLounge.promises) ? state.dateLounge.promises : []);
+  state.dateLounge.pulse = safePayload.pulse && typeof safePayload.pulse === "object"
+    ? safePayload.pulse
+    : state.dateLounge.pulse;
+  applyDateScene(state.dateLounge.scene, false);
+  setDateSongLink(state.dateLounge.songLink, false);
+  renderDatePromiseList();
+  renderDatePulse(state.dateLounge.pulse);
+}
+
+syncDateLoungeState(state.dateLounge);
 
 // --- Vibe & Animations ---
 let vibeMode = readStorage(STORAGE.vibe, STORAGE.legacyVibe) || 'cinema';
@@ -699,7 +805,8 @@ function applyRoomMode(mode) {
     study: { icon: "📚", label: "Study Room" },
     break: { icon: "☕", label: "Break Room" },
     fun: { icon: "🎮", label: "Fun Room" },
-    playyard: { icon: "🧩", label: "Mini Playyard" }
+    playyard: { icon: "🧩", label: "Mini Playyard" },
+    date: { icon: "💖", label: "Love Lounge" }
   };
 
   if (ui.activeModeBadge) {
@@ -714,6 +821,7 @@ function applyRoomMode(mode) {
 
   if (mode === "study") {
     ui.studyPanel.classList.remove("hidden");
+    ui.datePanel?.classList.add("hidden");
     ui.breakPanel?.classList.add("hidden");
     ui.funPanel?.classList.add("hidden");
     ui.playyardPanel?.classList.add("hidden");
@@ -728,6 +836,7 @@ function applyRoomMode(mode) {
     funMode?.leave();
   } else if (mode === "break") {
     ui.studyPanel.classList.add("hidden");
+    ui.datePanel?.classList.add("hidden");
     ui.breakPanel?.classList.remove("hidden");
     ui.funPanel?.classList.add("hidden");
     ui.playyardPanel?.classList.add("hidden");
@@ -743,6 +852,7 @@ function applyRoomMode(mode) {
     funMode?.leave();
   } else if (mode === "fun") {
     ui.studyPanel?.classList.add("hidden");
+    ui.datePanel?.classList.add("hidden");
     ui.breakPanel?.classList.add("hidden");
     ui.funPanel?.classList.remove("hidden");
     ui.playyardPanel?.classList.add("hidden");
@@ -756,8 +866,26 @@ function applyRoomMode(mode) {
     relaxMode?.leave();
     funMode?.enter();
     socket.emit("mascot:request-state");
+  } else if (mode === "date") {
+    ui.studyPanel?.classList.add("hidden");
+    ui.datePanel?.classList.remove("hidden");
+    ui.breakPanel?.classList.add("hidden");
+    ui.funPanel?.classList.add("hidden");
+    ui.playyardPanel?.classList.add("hidden");
+    ui.roomShell.classList.remove("study-layout");
+    ui.studyToolbar?.classList.remove("hidden");
+    document.body.classList.remove("minimalist");
+    document.body.classList.remove("break-layout");
+    document.body.classList.remove("playyard-room-active");
+    stopPlayyardTicker();
+    playyardRuntime.chaosArena?.setPaused(true);
+    unmountChaosArenaTarget();
+    relaxMode?.leave();
+    funMode?.leave();
+    socket.emit("lounge:request-state");
   } else if (mode === "playyard") {
     ui.studyPanel?.classList.add("hidden");
+    ui.datePanel?.classList.add("hidden");
     ui.breakPanel?.classList.add("hidden");
     ui.funPanel?.classList.add("hidden");
     ui.playyardPanel?.classList.remove("hidden");
@@ -778,6 +906,7 @@ function applyRoomMode(mode) {
     funMode?.leave();
   } else {
     ui.studyPanel?.classList.add("hidden");
+    ui.datePanel?.classList.add("hidden");
     ui.breakPanel?.classList.add("hidden");
     ui.funPanel?.classList.add("hidden");
     ui.playyardPanel?.classList.add("hidden");
@@ -1543,7 +1672,42 @@ function renderPlayyardState(playyard) {
 
 ui.playyardBackToFunBtn?.addEventListener("click", () => activateMode("fun"));
 ui.studyGoBreakBtn?.addEventListener("click", () => activateMode("break"));
+ui.breakGoDateBtn?.addEventListener("click", () => activateMode("date"));
 ui.breakGoFunBtn?.addEventListener("click", () => activateMode("fun"));
+ui.dateGoBreakBtn?.addEventListener("click", () => activateMode("break"));
+ui.dateGoFunBtn?.addEventListener("click", () => activateMode("fun"));
+ui.dateSceneButtons?.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    applyDateScene(btn.dataset.scene, true);
+  });
+});
+ui.datePulseButtons?.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const emoji = String(btn.dataset.emoji || "💖").trim() || "💖";
+    const text = String(btn.dataset.text || "Thinking of you").trim() || "Thinking of you";
+    socket.emit("lounge:send-pulse", { emoji, text });
+  });
+});
+ui.dateSongSaveBtn?.addEventListener("click", () => {
+  setDateSongLink(ui.dateSongInput?.value || "", true);
+  addSystemMessage("Love Lounge song updated.");
+});
+ui.dateSongOpenBtn?.addEventListener("click", () => {
+  const link = normalizeLink(state.dateLounge.songLink || ui.dateSongInput?.value || "");
+  if (!link) return;
+  window.open(link, "_blank", "noopener,noreferrer");
+});
+ui.datePromiseAddBtn?.addEventListener("click", () => {
+  const text = String(ui.datePromiseInput?.value || "").trim();
+  if (!text) return;
+  socket.emit("lounge:add-promise", { text });
+  if (ui.datePromiseInput) ui.datePromiseInput.value = "";
+});
+ui.datePromiseInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  ui.datePromiseAddBtn?.click();
+});
 ui.playyardGameButtons?.forEach((btn) => {
   btn.addEventListener("click", () => setPlayyardSelectedGame(btn.dataset.playyardGame));
 });
@@ -2339,6 +2503,11 @@ socket.emit("join-room", { roomId, name: userName }, (payload) => {
       payload.break.drawingEvents.forEach((stroke) => relaxMode?.drawingBoard.drawStroke(stroke));
     }
   }
+  if (payload.dateLounge) {
+    syncDateLoungeState(payload.dateLounge);
+  } else {
+    syncDateLoungeState(state.dateLounge);
+  }
   if (payload.fun) {
     funMode?.syncFromRoom(payload.fun);
   }
@@ -2349,7 +2518,7 @@ socket.emit("join-room", { roomId, name: userName }, (payload) => {
     renderPlayyardState(payload.playyard);
   }
 
-  if (["study", "break", "fun", "playyard"].includes(requestedMode) && studyState.mode !== requestedMode) {
+  if (["study", "break", "fun", "playyard", "date"].includes(requestedMode) && studyState.mode !== requestedMode) {
     activateMode(requestedMode);
   }
 });
@@ -2466,6 +2635,38 @@ socket.on("break-drawing-event", ({ stroke }) => {
 
 socket.on("break-drawing-cleared", () => {
   relaxMode?.drawingBoard.clear(false);
+});
+
+socket.on("lounge:state", ({ dateLounge }) => {
+  syncDateLoungeState(dateLounge || state.dateLounge);
+});
+
+socket.on("lounge:scene-updated", ({ scene, updatedBy }) => {
+  applyDateScene(scene, false);
+  if (updatedBy !== state.meId) addSystemMessage("Love Lounge scene changed.");
+});
+
+socket.on("lounge:song-updated", ({ url, updatedBy }) => {
+  setDateSongLink(url, false);
+  if (updatedBy !== state.meId) addSystemMessage("Love Lounge song updated.");
+});
+
+socket.on("lounge:promise-added", (promise) => {
+  state.dateLounge.promises = Array.isArray(state.dateLounge.promises) ? state.dateLounge.promises : [];
+  state.dateLounge.promises.push(promise);
+  state.dateLounge.promises = state.dateLounge.promises.slice(-24);
+  renderDatePromiseList();
+  if (promise?.senderId !== state.meId) {
+    addSystemMessage(`${promise?.senderName || "Partner"} added a promise.`);
+  }
+});
+
+socket.on("lounge:pulse", (pulse) => {
+  state.dateLounge.pulse = pulse;
+  renderDatePulse(pulse);
+  if (pulse?.fromId !== state.meId) {
+    addSystemMessage(`${pulse?.fromName || "Partner"} sent a Love Lounge pulse.`);
+  }
 });
 
 socket.on("study-pomodoro-updated", (p) => {

@@ -152,6 +152,7 @@ const CHAOS_ARENA_MIN_PLAYERS = 1;
 const CHAOS_ARENA_MAPS = new Set(["spinnerMayhem", "wobbleTiles", "risingLava", "iceChaos", "knockoutArena"]);
 const CHAOS_ARENA_MODES = new Set(["survival", "knockout", "kingOfRing", "chaos"]);
 const CHAOS_ARENA_MODIFIERS = new Set(["", "reverseControls", "speedBoost", "lowGravity", "invisiblePlayers", "doubleKnockback"]);
+const DATE_LOUNGE_SCENES = new Set(["candlelight", "moonlight", "aurora"]);
 
 const playyardRoundTimers = new Map();
 const playyardDropTimers = new Map();
@@ -1052,6 +1053,12 @@ function ensureRoom(roomId) {
         drawingEvents: [],
         ourSong: { url: "", title: "" }
       },
+      dateLounge: {
+        scene: "aurora",
+        songLink: "",
+        promises: [],
+        pulse: null
+      },
       fun: {
         scores: {},
         activeGame: null,
@@ -1112,6 +1119,7 @@ function ensureRoom(roomId) {
     });
   }
   const room = rooms.get(roomId);
+  ensureDateLoungeState(room);
   ensureMascotState(room);
   ensureMascotTicker(roomId);
   return room;
@@ -1127,6 +1135,7 @@ function getTimelinePosition(timeline) {
 }
 
 function getRoomSnapshot(room, viewerId) {
+  const lounge = ensureDateLoungeState(room);
   const participants = Array.from(room.participants.entries()).map(([id, participant]) => ({
     id,
     name: participant.name,
@@ -1152,11 +1161,31 @@ function getRoomSnapshot(room, viewerId) {
     mode: room.mode,
     study: room.study,
     break: room.break,
+    dateLounge: lounge,
     fun: room.fun,
     chaosArena: serializeChaosArena(room),
     mascot: serializeMascot(room),
     playyard: serializePlayyard(room, viewerId)
   };
+}
+
+function ensureDateLoungeState(room) {
+  if (!room.dateLounge || typeof room.dateLounge !== "object") {
+    room.dateLounge = {
+      scene: "aurora",
+      songLink: "",
+      promises: [],
+      pulse: null
+    };
+  }
+  const cleanScene = String(room.dateLounge.scene || "aurora").trim().toLowerCase();
+  room.dateLounge.scene = DATE_LOUNGE_SCENES.has(cleanScene) ? cleanScene : "aurora";
+  room.dateLounge.songLink = String(room.dateLounge.songLink || "").trim().slice(0, 2000);
+  room.dateLounge.promises = Array.isArray(room.dateLounge.promises) ? room.dateLounge.promises.slice(-24) : [];
+  room.dateLounge.pulse = room.dateLounge.pulse && typeof room.dateLounge.pulse === "object"
+    ? room.dateLounge.pulse
+    : null;
+  return room.dateLounge;
 }
 
 function pickNextPrompt(currentPrompt) {
@@ -1469,12 +1498,78 @@ io.on("connection", (socket) => {
     if (!room) return;
 
     const cleanMode = String(mode || "").trim().toLowerCase();
-    const allowedModes = new Set(["study", "break", "fun", "playyard"]);
+    const allowedModes = new Set(["study", "break", "fun", "playyard", "date"]);
     room.mode = allowedModes.has(cleanMode) ? cleanMode : "study";
     const mascot = ensureMascotState(room);
     mascot.lastTickAt = Date.now();
     io.to(roomId).emit("room-mode-updated", { mode: room.mode, updatedBy: socket.id });
     emitMascotState(roomId, room);
+  });
+
+  socket.on("lounge:request-state", () => {
+    const roomId = socket.data.roomId;
+    const room = roomId ? rooms.get(roomId) : null;
+    if (!room) return;
+    socket.emit("lounge:state", { dateLounge: ensureDateLoungeState(room) });
+  });
+
+  socket.on("lounge:set-scene", ({ scene }) => {
+    const roomId = socket.data.roomId;
+    const room = roomId ? rooms.get(roomId) : null;
+    if (!room) return;
+    const lounge = ensureDateLoungeState(room);
+    const cleanScene = String(scene || "").trim().toLowerCase();
+    lounge.scene = DATE_LOUNGE_SCENES.has(cleanScene) ? cleanScene : "aurora";
+    io.to(roomId).emit("lounge:scene-updated", { scene: lounge.scene, updatedBy: socket.id });
+  });
+
+  socket.on("lounge:set-song", ({ url }) => {
+    const roomId = socket.data.roomId;
+    const room = roomId ? rooms.get(roomId) : null;
+    if (!room) return;
+    const lounge = ensureDateLoungeState(room);
+    lounge.songLink = String(url || "").trim().slice(0, 2000);
+    io.to(roomId).emit("lounge:song-updated", { url: lounge.songLink, updatedBy: socket.id });
+  });
+
+  socket.on("lounge:add-promise", ({ text }) => {
+    const roomId = socket.data.roomId;
+    const room = roomId ? rooms.get(roomId) : null;
+    if (!room) return;
+    const sender = room.participants.get(socket.id);
+    if (!sender) return;
+    const cleanText = String(text || "").replace(/\s+/g, " ").trim().slice(0, 140);
+    if (!cleanText) return;
+    const lounge = ensureDateLoungeState(room);
+    const payload = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      senderId: socket.id,
+      senderName: String(sender.name || "Guest").trim() || "Guest",
+      text: cleanText,
+      createdAt: Date.now()
+    };
+    lounge.promises.push(payload);
+    lounge.promises = lounge.promises.slice(-24);
+    io.to(roomId).emit("lounge:promise-added", payload);
+  });
+
+  socket.on("lounge:send-pulse", ({ emoji, text }) => {
+    const roomId = socket.data.roomId;
+    const room = roomId ? rooms.get(roomId) : null;
+    if (!room) return;
+    const sender = room.participants.get(socket.id);
+    if (!sender) return;
+    const safeEmoji = String(emoji || "💖").trim().slice(0, 4) || "💖";
+    const safeText = String(text || "Thinking of you").replace(/\s+/g, " ").trim().slice(0, 90) || "Thinking of you";
+    const lounge = ensureDateLoungeState(room);
+    lounge.pulse = {
+      emoji: safeEmoji,
+      text: safeText,
+      fromId: socket.id,
+      fromName: String(sender.name || "Guest").trim() || "Guest",
+      at: Date.now()
+    };
+    io.to(roomId).emit("lounge:pulse", lounge.pulse);
   });
 
   socket.on("break-session-start", ({ duration }) => {
