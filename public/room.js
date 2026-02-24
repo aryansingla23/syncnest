@@ -1982,7 +1982,7 @@ function persistDateNightToLocal() {
 
 function addMessage({ senderName, text, mine = false, system = false, sentAt = Date.now() }) {
   const msg = document.createElement("div");
-  msg.className = `chat - msg ${mine ? "msg-sent" : "msg-received"}${system ? " system-msg" : ""} `;
+  msg.className = `chat-msg ${mine ? "msg-sent" : "msg-received"}${system ? " system-msg" : ""}`;
 
   const author = document.createElement("div");
   author.className = "msg-author";
