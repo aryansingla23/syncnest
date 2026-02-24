@@ -492,7 +492,18 @@ function buildRoomParams(extra = {}) {
 
 
 const rtcConfig = {
-  iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]
+  iceServers: [
+    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turn:openrelay.metered.ca:443?transport=tcp"
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
+  ]
 };
 
 const state = {
@@ -1875,14 +1886,14 @@ function renderParticipants() {
       const baseClass = participant.id === state.meId ? "participant-pill participant-you" : "participant-pill";
       const isInactive = participant.visible === false;
       item.innerHTML = `
-    < span class="${baseClass} ${isInactive ? "participant - inactive" : ""}" >
-      <span class="status-dot ${participant.inCall ? " live" : ""}" ></span >
-        <span>${participant.name}${participant.id === state.meId ? " (you)" : ""}</span>
-          ${isInactive ? "<small class=\"status-tag\">Inactive</small>" : ""}
-          ${isInactive && participant.id !== state.meId ? "<button class=\"nudge-btn\" title=\"Nudge to focus\">🔔 Nudge</button>" : ""}
-          ${participant.mood ? `<small class="participant-mood">${participant.mood}</small>` : ""}
-  <span class="focus-tag">${participant.focusTask ? "• " + participant.focusTask : ""}</span>
-        </span >
+    <span class="${baseClass} ${isInactive ? "participant-inactive" : ""}">
+      <span class="status-dot ${participant.inCall ? "live" : ""}"></span>
+      <span>${participant.name}${participant.id === state.meId ? " (you)" : ""}</span>
+      ${isInactive ? "<small class=\"status-tag\">Inactive</small>" : ""}
+      ${isInactive && participant.id !== state.meId ? "<button class=\"nudge-btn\" title=\"Nudge to focus\">🔔 Nudge</button>" : ""}
+      ${participant.mood ? `<small class="participant-mood">${participant.mood}</small>` : ""}
+      <span class="focus-tag">${participant.focusTask ? "• " + participant.focusTask : ""}</span>
+    </span>
     `;
       const nudgeBtn = item.querySelector(".nudge-btn");
       if (nudgeBtn) {
@@ -1895,7 +1906,7 @@ function renderParticipants() {
       ui.participantList.appendChild(item);
 
       // Also update remote video tile focus state
-      const remoteTile = document.getElementById(`remote - ${participant.id} `);
+      const remoteTile = document.getElementById(`remote-${participant.id}`);
       if (remoteTile) {
         // Note: we need a way to know if they are focusing. 
         // For now, let's assume if they have a focus task and it's active room mode.
@@ -1930,7 +1941,7 @@ function renderLoveNotes() {
     const card = document.createElement("article");
     card.className = "note-card";
     const sentAt = new Date(note.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    card.innerHTML = `< p class="note-meta" > ${note.senderName} · ${sentAt}</p > <p class="note-body"></p>`;
+    card.innerHTML = `<p class="note-meta">${note.senderName} · ${sentAt}</p><p class="note-body"></p>`;
     card.querySelector(".note-body").textContent = note.text;
     ui.loveNotes.appendChild(card);
   }
@@ -2150,8 +2161,29 @@ function ensurePeerConnection(peerId) {
     }
   };
 
+  let disconnectTimer = null;
   connection.onconnectionstatechange = () => {
-    if (["failed", "disconnected", "closed"].includes(connection.connectionState)) {
+    const connectionState = connection.connectionState;
+    if (connectionState === "connected") {
+      if (disconnectTimer) {
+        clearTimeout(disconnectTimer);
+        disconnectTimer = null;
+      }
+      return;
+    }
+    if (connectionState === "disconnected") {
+      if (!disconnectTimer) {
+        disconnectTimer = window.setTimeout(() => {
+          removePeer(peerId);
+        }, 4000);
+      }
+      return;
+    }
+    if (["failed", "closed"].includes(connectionState)) {
+      if (disconnectTimer) {
+        clearTimeout(disconnectTimer);
+        disconnectTimer = null;
+      }
       removePeer(peerId);
     }
   };
@@ -2161,24 +2193,26 @@ function ensurePeerConnection(peerId) {
 
 function attachRemoteStream(peerId, stream) {
   state.remoteStreams.set(peerId, stream);
-  const existing = document.getElementById(`remote - ${peerId} `);
+  const existing = document.getElementById(`remote-${peerId}`);
   if (existing) {
-    existing.querySelector("video").srcObject = stream;
+    const video = existing.querySelector("video");
+    if (video) video.srcObject = stream;
     syncPlayyardMiniCallUI();
     return;
   }
 
   const tile = document.createElement("article");
   tile.className = "video-item remote-video";
-  tile.id = `remote - ${peerId} `;
+  tile.id = `remote-${peerId}`;
   const participantName = state.participants.get(peerId)?.name || "Participant";
   tile.innerHTML = `
-    < video autoplay playsinline ></video >
+    <video autoplay playsinline></video>
     <div class="video-label">${participantName}</div>
     <button class="tile-fullscreen-btn" title="Fullscreen video">⛶</button>
     <button class="btn-icon pin-btn" title="Pin video">📌</button>
   `;
-  tile.querySelector("video").srcObject = stream;
+  const video = tile.querySelector("video");
+  if (video) video.srcObject = stream;
   tile.querySelector(".pin-btn").onclick = () => togglePin(peerId);
   ui.remoteVideos.appendChild(tile);
   refreshVideoTileFullscreenButtons();
@@ -2186,7 +2220,7 @@ function attachRemoteStream(peerId, stream) {
 }
 
 function togglePin(peerId) {
-  const tile = document.getElementById(`remote - ${peerId} `);
+  const tile = document.getElementById(`remote-${peerId}`);
   if (!tile) return;
 
   const isPinned = tile.classList.contains("pinned");
@@ -2208,7 +2242,7 @@ function removePeer(peerId) {
   }
   state.peers.delete(peerId);
   state.remoteStreams.delete(peerId);
-  const tile = document.getElementById(`remote - ${peerId} `);
+  const tile = document.getElementById(`remote-${peerId}`);
   if (tile) {
     tile.remove();
   }
@@ -3194,7 +3228,7 @@ function addToWallOfDone(taskText, name) {
   const card = document.createElement("div");
   card.className = "done-card";
   card.innerHTML = `
-    < div class="done-text" > ${taskText}</div >
+    <div class="done-text">${taskText}</div>
     <div style="font-size: 8px; color: var(--accent); margin-bottom: 2px;">BY ${name.toUpperCase()}</div>
     <div class="done-date">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
   `;
