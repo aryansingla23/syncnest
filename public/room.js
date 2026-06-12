@@ -512,6 +512,7 @@ const state = {
   participants: new Map(),
   peers: new Map(),
   remoteStreams: new Map(),
+  pendingIceCandidates: new Map(),
   timeline: {
     playing: false,
     currentTime: 0,
@@ -2134,6 +2135,22 @@ function refreshFullscreenButtons() {
   refreshPlayyardBattleFullscreenButton();
 }
 
+async function flushQueuedIceCandidates(peerId, connection) {
+  const pending = state.pendingIceCandidates.get(peerId);
+  if (!pending || pending.length === 0) {
+    return;
+  }
+  state.pendingIceCandidates.delete(peerId);
+  for (const candidate of pending) {
+    try {
+      await connection.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Queued ICE candidate handling failed", error);
+    }
+  }
+}
+
 function ensurePeerConnection(peerId) {
   if (state.peers.has(peerId)) {
     return state.peers.get(peerId);
@@ -2242,6 +2259,7 @@ function removePeer(peerId) {
   }
   state.peers.delete(peerId);
   state.remoteStreams.delete(peerId);
+  state.pendingIceCandidates.delete(peerId);
   const tile = document.getElementById(`remote-${peerId}`);
   if (tile) {
     tile.remove();
@@ -2843,6 +2861,7 @@ socket.on("webrtc-offer", async ({ from, offer }) => {
     } else {
       await connection.setRemoteDescription(remoteDescription);
     }
+    await flushQueuedIceCandidates(from, connection);
 
     const answer = await connection.createAnswer();
     await connection.setLocalDescription(answer);
@@ -2860,6 +2879,7 @@ socket.on("webrtc-answer", async ({ from, answer }) => {
   }
   try {
     await connection.setRemoteDescription(new RTCSessionDescription(answer));
+    await flushQueuedIceCandidates(from, connection);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Answer handling failed", error);
@@ -2872,6 +2892,12 @@ socket.on("webrtc-ice-candidate", async ({ from, candidate }) => {
   }
   try {
     const connection = ensurePeerConnection(from);
+    if (!connection.remoteDescription) {
+      const queued = state.pendingIceCandidates.get(from) || [];
+      queued.push(candidate);
+      state.pendingIceCandidates.set(from, queued);
+      return;
+    }
     await connection.addIceCandidate(new RTCIceCandidate(candidate));
   } catch (error) {
     // eslint-disable-next-line no-console
