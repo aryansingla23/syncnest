@@ -79,7 +79,7 @@ function resolveApiUrl(path) {
 
 console.log("Connecting to Socket.io at:", socketServerUrl);
 const socket = io(socketServerUrl, {
-  transports: ["websocket", "polling"],
+  transports: ["polling", "websocket"],
   reconnection: true
 });
 window.socket = socket; // Expose for debugging and cross-script access
