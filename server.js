@@ -16,16 +16,30 @@ const {
 const app = express();
 const server = http.createServer(app);
 app.use(express.json({ limit: "256kb" }));
+const defaultAllowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://syncnest-room.netlify.app"
+];
 const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
-const allowedOrigins = new Set(rawAllowedOrigins);
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...rawAllowedOrigins]);
+
+function isPreviewOrigin(cleanOrigin) {
+  try {
+    const parsed = new URL(cleanOrigin);
+    return parsed.protocol === "https:" && parsed.hostname.endsWith("--syncnest-room.netlify.app");
+  } catch {
+    return false;
+  }
+}
 
 function resolveAllowedOrigin(origin) {
   const cleanOrigin = String(origin || "").trim().replace(/\/+$/, "");
   if (!cleanOrigin) return "";
-  if (allowedOrigins.size === 0 || allowedOrigins.has(cleanOrigin)) {
+  if (allowedOrigins.has(cleanOrigin) || isPreviewOrigin(cleanOrigin)) {
     return cleanOrigin;
   }
   return "";
@@ -47,15 +61,21 @@ app.use((req, res, next) => {
 });
 
 const io = new Server(server, {
-  cors: rawAllowedOrigins.length
-    ? {
-      origin: rawAllowedOrigins,
-      methods: ["GET", "POST"]
-    }
-    : {
-      origin: true,
-      methods: ["GET", "POST"]
-    }
+  cors: {
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const allowedOrigin = resolveAllowedOrigin(origin);
+      if (allowedOrigin) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Origin not allowed by CORS"));
+    },
+    methods: ["GET", "POST"]
+  }
 });
 
 const PORT = process.env.PORT || 3000;
