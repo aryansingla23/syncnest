@@ -1,4 +1,10 @@
-const roomId = decodeURIComponent((window.location.pathname.split("/room/")[1] || "").trim());
+function parseRoomIdFromPath() {
+  const rawPath = String(window.location.pathname.split("/room/")[1] || "").trim();
+  const firstSegment = rawPath.split("/")[0] || "";
+  return decodeURIComponent(firstSegment).trim();
+}
+
+const roomId = parseRoomIdFromPath();
 if (!roomId) {
   window.location.assign("/");
 }
@@ -61,12 +67,16 @@ function normalizeBackendUrl(value) {
   return `https://${trimmed}`.replace(/\/+$/, "");
 }
 
+const PRODUCTION_BACKEND_DEFAULT = "https://syncnest-backend.onrender.com";
+
 const queryBackend = normalizeBackendUrl(params.get("backend"));
-const configuredBackend = normalizeBackendUrl(window.PULSE_BACKEND_URL);
+const configuredBackend = normalizeBackendUrl(window.SYNCNEST_API_BASE || window.PULSE_BACKEND_URL);
 // Force local origin if on localhost to avoid production sync issues
-const socketServerUrl = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+const isLocalRuntime = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const isStaticNetlifyRuntime = window.location.hostname.endsWith(".netlify.app");
+const socketServerUrl = isLocalRuntime
   ? window.location.origin
-  : (queryBackend || configuredBackend || window.location.origin);
+  : (queryBackend || configuredBackend || (isStaticNetlifyRuntime ? PRODUCTION_BACKEND_DEFAULT : window.location.origin));
 const apiBaseUrl = socketServerUrl;
 
 function resolveApiUrl(path) {
@@ -77,11 +87,30 @@ function resolveApiUrl(path) {
   return `${apiBaseUrl}${normalized}`;
 }
 
-console.log("Connecting to Socket.io at:", socketServerUrl);
-const socket = io(socketServerUrl, {
-  transports: ["polling", "websocket"],
-  reconnection: true
-});
+function createOfflineSocket() {
+  return {
+    id: "",
+    connected: false,
+    on() {},
+    emit(eventName, _payload, callback) {
+      if (typeof callback === "function") {
+        callback({
+          error: eventName === "join-room"
+            ? "Realtime backend is not configured for this deployment."
+            : "Realtime backend unavailable."
+        });
+      }
+    }
+  };
+}
+
+console.log("Connecting to Socket.io at:", socketServerUrl || "not configured");
+const socket = socketServerUrl
+  ? io(socketServerUrl, {
+    transports: ["polling", "websocket"],
+    reconnection: true
+  })
+  : createOfflineSocket();
 window.socket = socket; // Expose for debugging and cross-script access
 const MIN_POMODORO_MINUTES = 5;
 const MAX_POMODORO_MINUTES = 240;
@@ -477,8 +506,8 @@ function buildRoomParams(extra = {}) {
   } else if (userName) {
     roomParams.set("name", userName);
   }
-  if (queryBackend) {
-    roomParams.set("backend", queryBackend);
+  if (queryBackend || configuredBackend) {
+    roomParams.set("backend", queryBackend || configuredBackend);
   }
 
   Object.entries(extra).forEach(([key, value]) => {
@@ -491,7 +520,7 @@ function buildRoomParams(extra = {}) {
 }
 
 
-const rtcConfig = {
+let rtcConfig = {
   iceServers: [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
     {
@@ -2006,8 +2035,8 @@ function addSystemMessage(text) {
 async function copyInviteLinkToClipboard() {
   const inviteUrl = new URL(`/room/${encodeURIComponent(roomId)}`, window.location.origin);
   inviteUrl.searchParams.set("name", "");
-  if (queryBackend) {
-    inviteUrl.searchParams.set("backend", queryBackend);
+  if (queryBackend || configuredBackend) {
+    inviteUrl.searchParams.set("backend", queryBackend || configuredBackend);
   }
   try {
     await navigator.clipboard.writeText(inviteUrl.toString());
@@ -2172,15 +2201,18 @@ function ensurePeerConnection(peerId) {
   };
 
   connection.ontrack = (event) => {
-    const [remoteStream] = event.streams;
+    let remoteStream = event.streams[0];
+    if (!remoteStream && event.track) {
+      remoteStream = new MediaStream([event.track]);
+    }
     if (remoteStream) {
       attachRemoteStream(peerId, remoteStream);
     }
   };
 
   let disconnectTimer = null;
-  connection.onconnectionstatechange = () => {
-    const connectionState = connection.connectionState;
+  const handleStateChange = () => {
+    const connectionState = connection.connectionState || connection.iceConnectionState;
     if (connectionState === "connected") {
       if (disconnectTimer) {
         clearTimeout(disconnectTimer);
@@ -2205,6 +2237,9 @@ function ensurePeerConnection(peerId) {
     }
   };
 
+  connection.onconnectionstatechange = handleStateChange;
+  connection.oniceconnectionstatechange = handleStateChange;
+
   return connection;
 }
 
@@ -2215,6 +2250,7 @@ function attachRemoteStream(peerId, stream) {
     const video = existing.querySelector("video");
     if (video) video.srcObject = stream;
     syncPlayyardMiniCallUI();
+    window.dispatchEvent(new CustomEvent("syncnest:remote-stream-changed", { detail: { peerId, stream } }));
     return;
   }
 
@@ -2234,6 +2270,7 @@ function attachRemoteStream(peerId, stream) {
   ui.remoteVideos.appendChild(tile);
   refreshVideoTileFullscreenButtons();
   syncPlayyardMiniCallUI();
+  window.dispatchEvent(new CustomEvent("syncnest:remote-stream-changed", { detail: { peerId, stream } }));
 }
 
 function togglePin(peerId) {
@@ -2265,6 +2302,7 @@ function removePeer(peerId) {
     tile.remove();
   }
   syncPlayyardMiniCallUI();
+  window.dispatchEvent(new CustomEvent("syncnest:remote-stream-changed", { detail: { peerId, stream: null } }));
 }
 
 async function maybeCreateOffer(peerId) {
@@ -2485,6 +2523,10 @@ socket.emit("join-room", { roomId, name: userName }, (payload) => {
     window.alert(payload?.error || "Could not join room.");
     window.location.assign("/");
     return;
+  }
+
+  if (payload.iceServers) {
+    rtcConfig.iceServers = payload.iceServers;
   }
 
   state.meId = payload.participantId;

@@ -50,12 +50,16 @@ function normalizeBackendUrl(value) {
   return `https://${trimmed}`.replace(/\/+$/, '');
 }
 
+const PRODUCTION_BACKEND_DEFAULT = 'https://syncnest-backend.onrender.com';
+
 const landingParams = new URLSearchParams(window.location.search);
 const landingQueryBackend = normalizeBackendUrl(landingParams.get('backend'));
 const configuredApiBase = normalizeBackendUrl(window.SYNCNEST_API_BASE || window.PULSE_BACKEND_URL);
-const apiBaseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const isLocalRuntime = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isStaticNetlifyRuntime = window.location.hostname.endsWith('.netlify.app');
+const apiBaseUrl = isLocalRuntime
   ? window.location.origin
-  : (landingQueryBackend || configuredApiBase || window.location.origin);
+  : (landingQueryBackend || configuredApiBase || (isStaticNetlifyRuntime ? PRODUCTION_BACKEND_DEFAULT : window.location.origin));
 
 function resolveApiUrl(path) {
   const cleanPath = String(path || '').trim();
@@ -309,13 +313,22 @@ function getDisplayName(isCreate) {
   return name;
 }
 
+function buildRoomUrl(roomId, name) {
+  const roomParams = new URLSearchParams();
+  roomParams.set('name', name);
+  if (apiBaseUrl && apiBaseUrl !== window.location.origin) {
+    roomParams.set('backend', apiBaseUrl);
+  }
+  return `/room/${encodeURIComponent(roomId)}?${roomParams.toString()}`;
+}
+
 function openRoom(roomId, isCreate) {
   const name = getDisplayName(isCreate);
   void syncAccountPreferences({
     displayName: name,
     lastRoomId: roomId
   }, { keepalive: true });
-  window.location.assign(`/room/${encodeURIComponent(roomId)}?name=${encodeURIComponent(name)}`);
+  window.location.assign(buildRoomUrl(roomId, name));
 }
 
 function setRoomTab(target) {

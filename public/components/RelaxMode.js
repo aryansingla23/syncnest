@@ -94,6 +94,11 @@
       document.addEventListener("fullscreenchange", this.handleFullscreenChange);
       this.updateFullscreenButton();
 
+      this.onStreamChanged = () => {
+        this.renderPartnerCard();
+        this.syncPartnerVideo();
+      };
+
       // Our Song socket listener
       this.socket.on("break-our-song-updated", ({ url, title }) => {
         this.ourSong = { url: String(url || ""), title: String(title || "") };
@@ -399,6 +404,7 @@
       this.renderPartnerCard();
       this.startPartnerSync();
       this.syncPartnerVideo();
+      window.addEventListener("syncnest:remote-stream-changed", this.onStreamChanged);
     }
 
     leave() {
@@ -407,6 +413,7 @@
       this._stopYTSyncLoop();
       this.stopBreathingGuide();
       this.setPartnerMaximized(false);
+      window.removeEventListener("syncnest:remote-stream-changed", this.onStreamChanged);
       if (
         document.fullscreenElement &&
         (
@@ -546,7 +553,7 @@
     }
 
     getRemoteVideoElement() {
-      return document.querySelector("#remoteVideos video");
+      return document.querySelector("#remoteVideos .remote-video video");
     }
 
     syncPartnerVideo() {

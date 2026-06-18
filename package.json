@@ -5,7 +5,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "build:config": "node scripts/write-public-config.js",
+    "verify:production": "node scripts/verify-production.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "keywords": [
     "watch-party",

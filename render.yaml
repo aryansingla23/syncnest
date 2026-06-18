@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: syncnest-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://syncnest-room.netlify.app
+      - key: SYNCNEST_AUTH_SECRET
+        generateValue: true

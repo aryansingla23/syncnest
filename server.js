@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
@@ -13,6 +14,27 @@ const {
   serializePublicUser
 } = require("./server/authStore");
 
+function readDeployDefaults() {
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, "deploy", "config.json"), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+const deployDefaults = readDeployDefaults();
+const isProduction = process.env.NODE_ENV === "production";
+const AUTH_SECRET = String(
+  process.env.SYNCNEST_AUTH_SECRET
+  || process.env.AUTH_SECRET
+  || "syncnest-local-dev-secret-change-me"
+);
+if (isProduction && AUTH_SECRET === "syncnest-local-dev-secret-change-me") {
+  // eslint-disable-next-line no-console
+  console.warn("[SyncNest] WARNING: Set SYNCNEST_AUTH_SECRET in production.");
+}
+
 const app = express();
 const server = http.createServer(app);
 app.use(express.json({ limit: "256kb" }));
@@ -21,6 +43,12 @@ const defaultAllowedOrigins = [
   "http://127.0.0.1:3000",
   "https://syncnest-room.netlify.app"
 ];
+if (deployDefaults.frontendUrl) {
+  defaultAllowedOrigins.push(String(deployDefaults.frontendUrl).replace(/\/+$/, ""));
+}
+if (process.env.FRONTEND_URL) {
+  defaultAllowedOrigins.push(String(process.env.FRONTEND_URL).trim().replace(/\/+$/, ""));
+}
 const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim().replace(/\/+$/, ""))
@@ -1154,6 +1182,68 @@ function getTimelinePosition(timeline) {
   return Math.max(0, timeline.currentTime + elapsedSeconds * timeline.playbackRate);
 }
 
+// WebRTC ICE Servers Configuration
+let serverIceServers = null;
+if (process.env.ICE_SERVERS_JSON) {
+  try {
+    serverIceServers = JSON.parse(process.env.ICE_SERVERS_JSON);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to parse ICE_SERVERS_JSON env variable", err);
+  }
+} else if (process.env.TURN_SERVER_URLS) {
+  serverIceServers = [
+    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+    {
+      urls: process.env.TURN_SERVER_URLS.split(",").map((u) => u.trim()),
+      username: process.env.TURN_SERVER_USERNAME || "",
+      credential: process.env.TURN_SERVER_CREDENTIAL || ""
+    }
+  ];
+}
+
+function getIceServers() {
+  if (serverIceServers) {
+    return serverIceServers;
+  }
+
+  // Support TURN REST API standard (timed credentials)
+  if (process.env.TURN_REST_API_URL && process.env.TURN_REST_API_SECRET) {
+    try {
+      const urls = process.env.TURN_REST_API_URL.split(",").map((u) => u.trim());
+      const secret = process.env.TURN_REST_API_SECRET;
+      // 24 hours validity
+      const username = `${Math.floor(Date.now() / 1000) + 86400}:syncnest`;
+      const crypto = require("crypto");
+      const credential = crypto
+        .createHmac("sha1", secret)
+        .update(username)
+        .digest("base64");
+      return [
+        { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+        { urls, username, credential }
+      ];
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to generate TURN REST API credentials", err);
+    }
+  }
+
+  // Default fallback (uses openrelay project)
+  return [
+    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turn:openrelay.metered.ca:443?transport=tcp"
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
+  ];
+}
+
 function getRoomSnapshot(room, viewerId) {
   const lounge = ensureDateLoungeState(room);
   const participants = Array.from(room.participants.entries()).map(([id, participant]) => ({
@@ -1170,6 +1260,7 @@ function getRoomSnapshot(room, viewerId) {
     roomId: room.id,
     participants,
     mediaLink: room.mediaLink,
+    iceServers: getIceServers(),
     dateNight: {
       currentPrompt: room.dateNight.currentPrompt,
       notes: room.dateNight.notes
@@ -1462,7 +1553,9 @@ app.get("/room/:roomId/modes", (_req, res) => {
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
+    app: "syncnest-realtime-api",
     rooms: rooms.size,
+    socketPath: "/socket.io/",
     now: new Date().toISOString()
   });
 });
@@ -2679,7 +2772,7 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   // eslint-disable-next-line no-console
-  console.log(`SyncNest running on http://localhost:${PORT}`);
+  console.log(`SyncNest running on port ${PORT}`);
 });

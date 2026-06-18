@@ -10,7 +10,17 @@ const userName = String(
   || localStorage.getItem(LEGACY_NAME_KEY)
   || ""
 ).trim();
-const backend = String(params.get("backend") || "").trim();
+function normalizeBackendUrl(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed.replace(/\/+$/, "");
+  return `https://${trimmed}`.replace(/\/+$/, "");
+}
+
+const PRODUCTION_BACKEND_DEFAULT = "https://syncnest-backend.onrender.com";
+
+const configuredBackend = normalizeBackendUrl(window.SYNCNEST_API_BASE || window.PULSE_BACKEND_URL);
+const backend = normalizeBackendUrl(params.get("backend") || configuredBackend || PRODUCTION_BACKEND_DEFAULT);
 
 function buildRoomUrl() {
   const query = new URLSearchParams();

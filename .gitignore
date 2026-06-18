@@ -9,6 +9,7 @@ npm-debug.log*
 output/
 dist/
 build/
+server/data/accounts.json
 
 # Local env/config
 .env

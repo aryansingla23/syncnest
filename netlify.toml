@@ -1,6 +1,11 @@
 [build]
   publish = "public"
-  command = "echo 'Static deploy'"
+  command = "node scripts/write-public-config.js"
+
+[[redirects]]
+  from = "/room/*/modes"
+  to = "/ambient-modes.html"
+  status = 200
 
 [[redirects]]
   from = "/room/*"
